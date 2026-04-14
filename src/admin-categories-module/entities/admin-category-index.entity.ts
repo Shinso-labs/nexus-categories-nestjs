@@ -10,17 +10,17 @@ export class AdminCategoryIndex {
   id: number;
 
   /** Mapped from: Category count */
-  @Column()
+  @Column({ name: 'total_categories', default: 0 })
   totalCategories: number;
 
   /** Mapped from: Auto-incrementing ID */
-  @Column()
+  @Column({ name: 'next_category_id', default: 1 })
   nextCategoryId: number;
 
   /** Mapped from: Last modification timestamp */
-  @Column()
+  @Column({ name: 'last_updated', type: 'bigint', default: () => 'EXTRACT(EPOCH FROM NOW())' })
   lastUpdated: number;
 
-  @CreateDateColumn()
+  @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;
 }

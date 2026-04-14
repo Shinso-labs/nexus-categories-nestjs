@@ -9,10 +9,15 @@ import { AdminAttributeIndex } from './entities/admin-attribute-index.entity';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([AdminCategory, AdminCategoryIndex, AdminAttribute, AdminAttributeIndex]),
+    TypeOrmModule.forFeature([
+      AdminCategory, 
+      AdminCategoryIndex, 
+      AdminAttribute, 
+      AdminAttributeIndex
+    ]),
   ],
   controllers: [AdminCategoriesModuleController],
   providers: [AdminCategoriesModuleService],
   exports: [AdminCategoriesModuleService],
 })
-export class AdminCategoriesModuleModule {}
+export class AdminCategoriesModule {}

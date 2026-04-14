@@ -1,8 +1,9 @@
 import { IsOptional, IsNumber, IsString, IsBoolean } from 'class-validator';
 
-export class CreateAdminCategoriesModuleDto {
+export class UpdateAdminCategoriesModuleDto {
+  @IsOptional()
   @IsString()
-  name: string;
+  name?: string;
 
   @IsOptional()
   @IsString()

@@ -10,17 +10,17 @@ export class AdminAttributeIndex {
   id: number;
 
   /** Mapped from: Attribute count */
-  @Column()
+  @Column({ name: 'total_attributes', default: 0 })
   totalAttributes: number;
 
   /** Mapped from: Auto-incrementing ID */
-  @Column()
+  @Column({ name: 'next_attribute_id', default: 1 })
   nextAttributeId: number;
 
   /** Mapped from: Last modification timestamp */
-  @Column()
+  @Column({ name: 'last_updated', type: 'bigint', default: () => 'EXTRACT(EPOCH FROM NOW())' })
   lastUpdated: number;
 
-  @CreateDateColumn()
+  @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;
 }

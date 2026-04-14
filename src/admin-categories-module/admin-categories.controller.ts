@@ -1,5 +1,7 @@
-import { Controller, Query, Param, Body, ParseIntPipe, Get, Post, Put, Delete } from '@nestjs/common';
+import { Controller, Query, Param, Body, ParseIntPipe, Get, Post, Put, Delete, UseGuards } from '@nestjs/common';
 import { AdminCategoriesModuleService } from './admin-categories.service';
+import { CreateAdminCategoriesModuleDto } from './dto/create-admin-categories.dto';
+import { UpdateAdminCategoriesModuleDto } from './dto/update-admin-categories.dto';
 
 @Controller('admin-categories')
 export class AdminCategoriesModuleController {
@@ -10,7 +12,11 @@ export class AdminCategoriesModuleController {
    * Source: AdminCategoriesController.index
    */
   @Get()
-  async getAdminCategories(@Query('page') page?: number | null, @Query('perPage') perPage?: number | null, @Query('type') type?: string) {
+  async getAdminCategories(
+    @Query('page') page?: number | null, 
+    @Query('perPage') perPage?: number | null, 
+    @Query('type') type?: string
+  ) {
     return this.adminCategoriesModuleService.getAdminCategories(page, perPage, type);
   }
 
@@ -19,7 +25,7 @@ export class AdminCategoriesModuleController {
    * Source: AdminCategoriesController.store
    */
   @Post()
-  async createAdminCategory(@Body() body: Record<string, any>) {
+  async createAdminCategory(@Body() body: CreateAdminCategoriesModuleDto) {
     return this.adminCategoriesModuleService.createAdminCategory(body);
   }
 
@@ -28,7 +34,10 @@ export class AdminCategoriesModuleController {
    * Source: AdminCategoriesController.update
    */
   @Put(':id')
-  async updateAdminCategory(@Param('id', ParseIntPipe) id: number, @Body() body: Record<string, any>) {
+  async updateAdminCategory(
+    @Param('id', ParseIntPipe) id: number, 
+    @Body() body: UpdateAdminCategoriesModuleDto
+  ) {
     return this.adminCategoriesModuleService.updateAdminCategory(id, body);
   }
 
@@ -46,7 +55,10 @@ export class AdminCategoriesModuleController {
    * Source: AdminCategoriesController.listAttributes
    */
   @Get('attributes')
-  async getAdminAttributes(@Query('page') page?: number | null, @Query('perPage') perPage?: number | null) {
+  async getAdminAttributes(
+    @Query('page') page?: number | null, 
+    @Query('perPage') perPage?: number | null
+  ) {
     return this.adminCategoriesModuleService.getAdminAttributes(page, perPage);
   }
 
@@ -64,7 +76,10 @@ export class AdminCategoriesModuleController {
    * Source: AdminCategoriesController.updateAttribute
    */
   @Put('attributes/:id')
-  async updateAdminAttribute(@Param('id', ParseIntPipe) id: number, @Body() body: Record<string, any>) {
+  async updateAdminAttribute(
+    @Param('id', ParseIntPipe) id: number, 
+    @Body() body: Record<string, any>
+  ) {
     return this.adminCategoriesModuleService.updateAdminAttribute(id, body);
   }
 
