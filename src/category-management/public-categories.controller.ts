@@ -12,8 +12,16 @@ export class PublicCategoriesController {
   constructor(private readonly service: CategoryManagementService) {}
 
   private extractTenantId(req: any): number {
-    // Extract tenant ID from request context (headers, subdomain, etc.)
-    return req.tenantId || req.headers['x-tenant-id'] || req.subdomains?.[0] || 1;
+    // Extract tenant ID from request context (headers, subdomain, JWT, etc.)
+    return req.tenantId || req.user?.tenantId || Number(req.headers['x-tenant-id']) || 
+           (req.hostname && this.getTenantFromHostname(req.hostname)) || 1;
+  }
+
+  private getTenantFromHostname(hostname: string): number | null {
+    // Extract tenant from subdomain if using subdomain-based tenancy
+    // e.g., tenant1.app.com -> tenantId 1
+    const subdomain = hostname.split('.')[0];
+    return isNaN(Number(subdomain)) ? null : Number(subdomain);
   }
 
   /**

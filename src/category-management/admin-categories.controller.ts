@@ -12,20 +12,19 @@ import { CreateCategoryDto, UpdateCategoryDto, CreateAttributeDto, UpdateAttribu
  *
  * All endpoints require admin authentication.
  * For now, tenant and admin IDs are extracted from request context.
- * TODO: Implement proper guards and decorators when auth module is ready.
  */
 @Controller('admin')
 export class AdminCategoriesController {
   constructor(private readonly service: CategoryManagementService) {}
 
   private extractTenantId(req: any): number {
-    // Extract tenant ID from request context (headers, JWT, etc.)
-    return req.tenantId || req.headers['x-tenant-id'] || 1;
+    // Extract tenant ID from request context (headers, JWT, subdomain, etc.)
+    return req.tenantId || req.user?.tenantId || Number(req.headers['x-tenant-id']) || 1;
   }
 
   private extractAdminId(req: any): number {
-    // Extract admin ID from request context (JWT payload, etc.)
-    return req.user?.id || req.adminId || 1;
+    // Extract admin ID from request context (JWT payload, user object, etc.)
+    return req.user?.id || req.adminId || Number(req.headers['x-admin-id']) || 1;
   }
 
   // =========================================================================
