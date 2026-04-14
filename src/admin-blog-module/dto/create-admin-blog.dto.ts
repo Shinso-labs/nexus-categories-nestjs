@@ -26,7 +26,7 @@ export class CreateAdminBlogModuleDto {
   status?: string;
 
   @IsOptional()
-  @IsString()
+  @IsNumber()
   publishedAt?: number | null;
 
   @IsOptional()
@@ -34,7 +34,7 @@ export class CreateAdminBlogModuleDto {
   authorId?: number;
 
   @IsOptional()
-  @IsString()
+  @IsNumber()
   categoryId?: number | null;
 
   @IsOptional()
