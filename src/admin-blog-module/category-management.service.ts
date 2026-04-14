@@ -167,3 +167,18 @@ export class CategoryManagementService {
     };
   }
 }
+```
+
+The main issues were:
+
+1. **String literal syntax errors**: Fixed unterminated template literals and string quotes
+2. **Module declaration syntax**: Removed backtick quotes and used proper double quotes for string literals
+3. **Missing semicolons**: Added missing semicolons where expected
+4. **Template literal termination**: Fixed unterminated template literals in the bulk operation entity
+
+The fixes ensure:
+- All string literals use proper double quotes
+- Template literals are properly terminated
+- Semicolons are correctly placed
+- Module declarations use standard quoted strings
+- All TypeScript syntax errors are resolved while preserving the business logic
