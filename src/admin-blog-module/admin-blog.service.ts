@@ -1,13 +1,26 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException, ForbiddenException } from '@nestjs/common';
 import { AdminBlogPost } from './entities/admin-blog-post.entity';
+import { SeoMetadata } from './entities/seo-metadata.entity';
+import { ActivityLog } from './entities/activity-log.entity';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, DataSource } from 'typeorm';
+import { BaseApiController } from './base-api.controller';
+import { AuditLogService } from './audit-log.service';
+import { HtmlSanitizerService } from './html-sanitizer.service';
 
 @Injectable()
 export class AdminBlogModuleService {
   constructor(
     @InjectRepository(AdminBlogPost)
     private readonly repository: Repository<AdminBlogPost>,
+    @InjectRepository(SeoMetadata)
+    private readonly seoRepository: Repository<SeoMetadata>,
+    @InjectRepository(ActivityLog)
+    private readonly activityLogRepository: Repository<ActivityLog>,
+    private readonly dataSource: DataSource,
+    private readonly baseApiController: BaseApiController,
+    private readonly auditLogService: AuditLogService,
+    private readonly htmlSanitizerService: HtmlSanitizerService,
   ) {}
 
   private readonly BULK_MAX = 100;
@@ -16,29 +29,41 @@ export class AdminBlogModuleService {
    * Get paginated list of blog posts for admin dashboard
    * Source: AdminBlogController.index
    */
-  async getAdminBlogPosts(page?: number | null, perPage?: number | null, status?: string | null): Promise<any> {
-    const currentPage = page || 1;
-    const limit = Math.min(perPage || 20, 100);
+  async getAdminBlogPosts(page?: number | null, perPage?: number | null, status?: string | null, search?: string | null, req?: any): Promise<any> {
+    // Admin authentication and tenant validation
+    const adminId = this.baseApiController.requireAdmin(req);
+    const tenantId = this.baseApiController.getTenantId(req);
+
+    const currentPage = Math.max(page || 1, 1);
+    const limit = Math.min(Math.max(perPage || 20, 1), 100);
     const offset = (currentPage - 1) * limit;
 
-    const queryBuilder = this.repository.createQueryBuilder('p')
-      .leftJoin('users', 'u', 'p.authorId = u.id')
-      .leftJoin('categories', 'c', 'p.categoryId = c.id')
+    let queryBuilder = this.dataSource.createQueryBuilder()
       .select([
-        'p.id', 'p.title', 'p.slug', 'p.excerpt', 'p.status', 'p.featuredImage',
-        'p.authorId', 'p.categoryId', 'p.createdAt', 'p.updatedAt',
+        'p.id', 'p.title', 'p.slug', 'p.excerpt', 'p.status', 'p.featured_image',
+        'p.author_id', 'p.category_id', 'p.created_at', 'p.updated_at',
         'CONCAT(COALESCE(u.first_name, ""), " ", COALESCE(u.last_name, "")) as author_name',
         'c.name as category_name'
-      ]);
+      ])
+      .from('posts', 'p')
+      .leftJoin('users', 'u', 'p.author_id = u.id')
+      .leftJoin('categories', 'c', 'p.category_id = c.id')
+      .where('p.tenant_id = :tenantId', { tenantId });
 
     if (status && ['draft', 'published'].includes(status)) {
       queryBuilder.andWhere('p.status = :status', { status });
     }
 
-    const total = await queryBuilder.getCount();
-    
+    if (search) {
+      const searchTerm = `%${search}%`;
+      queryBuilder.andWhere('(p.title LIKE :searchTerm OR p.content LIKE :searchTerm)', { searchTerm });
+    }
+
+    const totalQuery = queryBuilder.clone();
+    const total = await totalQuery.getCount();
+
     const items = await queryBuilder
-      .orderBy('p.createdAt', 'DESC')
+      .orderBy('p.created_at', 'DESC')
       .limit(limit)
       .offset(offset)
       .getRawMany();
@@ -49,162 +74,200 @@ export class AdminBlogModuleService {
       slug: row.p_slug || '',
       excerpt: row.p_excerpt || '',
       status: row.p_status || 'draft',
-      featured_image: row.p_featuredImage || null,
-      author_id: parseInt(row.p_authorId) || 0,
+      featured_image: row.p_featured_image || null,
+      author_id: parseInt(row.p_author_id) || 0,
       author_name: (row.author_name || '').trim(),
-      category_id: row.p_categoryId ? parseInt(row.p_categoryId) : null,
+      category_id: row.p_category_id ? parseInt(row.p_category_id) : null,
       category_name: row.category_name || null,
-      created_at: row.p_createdAt,
-      updated_at: row.p_updatedAt || null,
+      created_at: row.p_created_at,
+      updated_at: row.p_updated_at || null,
     }));
 
-    return {
-      data: formatted,
-      total,
-      page: currentPage,
-      perPage: limit,
-      totalPages: Math.ceil(total / limit)
-    };
+    return this.baseApiController.respondWithPaginatedCollection(formatted, total, currentPage, limit);
   }
 
   /**
    * Get single blog post for admin editing
    * Source: AdminBlogController.show
    */
-  async getAdminBlogPost(id: number): Promise<any> {
-    const post = await this.repository.createQueryBuilder('p')
-      .leftJoin('users', 'u', 'p.authorId = u.id')
-      .leftJoin('categories', 'c', 'p.categoryId = c.id')
-      .leftJoin('seo_metadata', 's', 's.entity_type = "post" AND s.entity_id = p.id')
+  async getAdminBlogPost(id: number, req?: any): Promise<any> {
+    // Admin authentication and tenant validation
+    const adminId = this.baseApiController.requireAdmin(req);
+    const tenantId = this.baseApiController.getTenantId(req);
+
+    const post = await this.dataSource.createQueryBuilder()
       .select([
         'p.*',
         'CONCAT(COALESCE(u.first_name, ""), " ", COALESCE(u.last_name, "")) as author_name',
-        'c.name as category_name',
-        's.meta_title', 's.meta_description', 's.noindex'
+        'c.name as category_name'
       ])
-      .where('p.id = :id', { id })
+      .from('posts', 'p')
+      .leftJoin('users', 'u', 'p.author_id = u.id')
+      .leftJoin('categories', 'c', 'p.category_id = c.id')
+      .where('p.id = :id AND p.tenant_id = :tenantId', { id, tenantId })
       .getRawOne();
 
     if (!post) {
       throw new NotFoundException('Blog post not found');
     }
 
-    return {
-      data: {
-        id: parseInt(post.p_id),
-        title: post.p_title || '',
-        slug: post.p_slug || '',
-        content: post.p_content || '',
-        excerpt: post.p_excerpt || '',
-        status: post.p_status || 'draft',
-        featured_image: post.p_featuredImage || null,
-        author_id: parseInt(post.p_authorId) || 0,
-        author_name: (post.author_name || '').trim(),
-        category_id: post.p_categoryId ? parseInt(post.p_categoryId) : null,
-        category_name: post.category_name || null,
-        meta_title: post.s_meta_title || null,
-        meta_description: post.s_meta_description || null,
-        noindex: !!(post.s_noindex || false),
-        created_at: post.p_createdAt,
-        updated_at: post.p_updatedAt || null,
-      }
-    };
+    // Fetch SEO metadata
+    const seo = await this.seoRepository.findOne({
+      where: { entityType: 'post', entityId: id, tenantId }
+    });
+
+    return this.baseApiController.respondWithData({
+      id: parseInt(post.p_id),
+      title: post.p_title || '',
+      slug: post.p_slug || '',
+      content: post.p_content || '',
+      excerpt: post.p_excerpt || '',
+      status: post.p_status || 'draft',
+      featured_image: post.p_featured_image || null,
+      author_id: parseInt(post.p_author_id) || 0,
+      author_name: (post.author_name || '').trim(),
+      category_id: post.p_category_id ? parseInt(post.p_category_id) : null,
+      category_name: post.category_name || null,
+      meta_title: seo?.metaTitle || null,
+      meta_description: seo?.metaDescription || null,
+      noindex: !!(seo?.noindex || false),
+      created_at: post.p_created_at,
+      updated_at: post.p_updated_at || null,
+    });
   }
 
   /**
    * Create new blog post
    * Source: AdminBlogController.store
    */
-  async createBlogPost(body: Record<string, any>): Promise<any> {
+  async createBlogPost(body: Record<string, any>, req?: any): Promise<any> {
+    // Admin authentication and tenant validation
+    const adminId = this.baseApiController.requireAdmin(req);
+    const tenantId = this.baseApiController.getTenantId(req);
+
     const title = (body.title || '').trim();
 
     if (!title) {
-      throw new BadRequestException('Title is required');
+      return this.baseApiController.respondWithError('VALIDATION_REQUIRED_FIELD', 'Title is required', 'title', 400);
     }
 
+    // HTML content sanitization
+    const content = this.htmlSanitizerService.sanitizeCms(body.content || '');
+    
     // Auto-generate slug from title
     let slug = title.toLowerCase().replace(/[^a-z0-9]+/gi, '-').replace(/^-+|-+$/g, '');
 
-    // Ensure slug uniqueness
-    const existingSlug = await this.repository.createQueryBuilder()
-      .where('slug = :slug', { slug })
-      .getCount();
+    // Complex slug uniqueness checking within tenant scope
+    const existingSlug = await this.dataSource.createQueryBuilder()
+      .select('COUNT(*) as cnt')
+      .from('posts', 'p')
+      .where('p.slug = :slug AND p.tenant_id = :tenantId', { slug, tenantId })
+      .getRawOne();
 
-    if (existingSlug > 0) {
+    if (parseInt(existingSlug.cnt) > 0) {
       slug = `${slug}-${Date.now()}`;
     }
 
-    const content = body.content || '';
     const excerpt = (body.excerpt || '').trim();
     const status = ['draft', 'published'].includes(body.status) ? body.status : 'draft';
     const featuredImage = body.featured_image || null;
     const categoryId = body.category_id ? parseInt(body.category_id) : null;
-    const authorId = body.author_id || 1; // Use provided author_id or default to 1
 
     // Allow custom slug override
     if (body.slug) {
       const customSlug = body.slug.toLowerCase().replace(/[^a-z0-9]+/gi, '-').replace(/^-+|-+$/g, '');
-      const existingCustomSlug = await this.repository.createQueryBuilder()
-        .where('slug = :slug', { slug: customSlug })
-        .getCount();
+      const existingCustomSlug = await this.dataSource.createQueryBuilder()
+        .select('COUNT(*) as cnt')
+        .from('posts', 'p')
+        .where('p.slug = :slug AND p.tenant_id = :tenantId', { slug: customSlug, tenantId })
+        .getRawOne();
       
-      if (existingCustomSlug > 0) {
+      if (parseInt(existingCustomSlug.cnt) > 0) {
         slug = `${customSlug}-${Date.now()}`;
       } else {
         slug = customSlug;
       }
     }
 
-    const newPost = this.repository.create({
-      authorId,
-      title,
-      slug,
-      content,
-      excerpt,
-      status,
-      featuredImage,
-      categoryId,
-      isFeatured: false,
-      viewCount: 0,
-    });
+    try {
+      const result = await this.dataSource.createQueryBuilder()
+        .insert()
+        .into('posts')
+        .values({
+          tenant_id: tenantId,
+          author_id: adminId,
+          title,
+          slug,
+          content,
+          excerpt,
+          status,
+          featured_image: featuredImage,
+          category_id: categoryId,
+          created_at: new Date(),
+          updated_at: new Date(),
+        })
+        .execute();
 
-    const saved = await this.repository.save(newPost);
+      const newId = result.identifiers[0].id;
 
-    // Handle SEO metadata if provided
-    if (body.meta_title || body.meta_description || body.noindex) {
-      // SEO metadata would be handled by a separate service/repository
-      // For now, we'll store it in the entity fields
-      await this.repository.update(saved.id, {
-        metaTitle: body.meta_title || null,
-        metaDescription: body.meta_description || null,
-      });
-    }
-
-    // Activity logging would be implemented here
-    // Example: this.activityLogger.log('blog_post_created', saved.id, authorId);
-
-    return {
-      data: {
-        id: saved.id,
-        title: saved.title,
-        slug: saved.slug,
-        status: saved.status,
+      // Separate SEO metadata table insertion with ON DUPLICATE KEY UPDATE
+      const metaTitle = (body.meta_title || '').trim();
+      const metaDescription = (body.meta_description || '').trim();
+      const noindex = !!body.noindex;
+      
+      if (metaTitle || metaDescription || noindex) {
+        await this.dataSource.query(`
+          INSERT INTO seo_metadata (entity_type, entity_id, tenant_id, meta_title, meta_description, noindex, created_at, updated_at)
+          VALUES ('post', ?, ?, ?, ?, ?, NOW(), NOW())
+          ON DUPLICATE KEY UPDATE 
+            meta_title = VALUES(meta_title), 
+            meta_description = VALUES(meta_description), 
+            noindex = VALUES(noindex), 
+            updated_at = NOW()
+        `, [newId, tenantId, metaTitle || null, metaDescription || null, noindex ? 1 : 0]);
       }
-    };
+
+      // Activity logging
+      await this.activityLogRepository.save({
+        userId: adminId,
+        action: 'admin_create_blog_post',
+        details: `Created blog post #${newId}: ${title}`,
+        createdAt: new Date(),
+      });
+
+      return this.baseApiController.respondWithData({
+        id: newId,
+        title,
+        slug,
+        status,
+      }, null, 201);
+    } catch (error) {
+      // Proper error response format for validation
+      return this.baseApiController.respondWithError('CREATION_FAILED', 'Failed to create blog post', null, 500);
+    }
   }
 
   /**
    * Update existing blog post
    * Source: AdminBlogController.update
    */
-  async updateBlogPost(id: number, body: Record<string, any>): Promise<any> {
-    const post = await this.repository.findOne({ where: { id } });
+  async updateBlogPost(id: number, body: Record<string, any>, req?: any): Promise<any> {
+    // Admin authentication and tenant validation
+    const adminId = this.baseApiController.requireAdmin(req);
+    const tenantId = this.baseApiController.getTenantId(req);
+
+    // Verify post exists and belongs to tenant
+    const post = await this.dataSource.createQueryBuilder()
+      .select(['id', 'title', 'slug'])
+      .from('posts', 'p')
+      .where('p.id = :id AND p.tenant_id = :tenantId', { id, tenantId })
+      .getRawOne();
 
     if (!post) {
       throw new NotFoundException('Blog post not found');
     }
 
-    const updates: Partial<AdminBlogPost> = {};
+    const updates: any = {};
 
     if (body.title && body.title.trim() !== '') {
       updates.title = body.title.trim();
@@ -214,11 +277,13 @@ export class AdminBlogModuleService {
         const newSlug = updates.title.toLowerCase().replace(/[^a-z0-9]+/gi, '-').replace(/^-+|-+$/g, '');
 
         if (newSlug !== post.slug) {
-          const existing = await this.repository.createQueryBuilder()
-            .where('slug = :slug AND id != :id', { slug: newSlug, id })
-            .getCount();
-
-          if (existing > 0) {
+          const existing = await this.dataSource.createQueryBuilder()
+            .select('COUNT(*) as cnt')
+            .from('posts', 'p')
+            .where('p.slug = :slug AND p.tenant_id = :tenantId AND p.id != :id', { slug: newSlug, tenantId, id })
+            .getRawOne();
+          
+          if (parseInt(existing.cnt) > 0) {
             updates.slug = `${newSlug}-${Date.now()}`;
           } else {
             updates.slug = newSlug;
@@ -231,11 +296,13 @@ export class AdminBlogModuleService {
     if (body.slug && body.slug.trim() !== '') {
       const newSlug = body.slug.trim().toLowerCase().replace(/[^a-z0-9]+/gi, '-').replace(/^-+|-+$/g, '');
       if (newSlug !== post.slug) {
-        const existing = await this.repository.createQueryBuilder()
-          .where('slug = :slug AND id != :id', { slug: newSlug, id })
-          .getCount();
+        const existing = await this.dataSource.createQueryBuilder()
+          .select('COUNT(*) as cnt')
+          .from('posts', 'p')
+          .where('p.slug = :slug AND p.tenant_id = :tenantId AND p.id != :id', { slug: newSlug, tenantId, id })
+          .getRawOne();
 
-        if (existing > 0) {
+        if (parseInt(existing.cnt) > 0) {
           updates.slug = `${newSlug}-${Date.now()}`;
         } else {
           updates.slug = newSlug;
@@ -244,7 +311,7 @@ export class AdminBlogModuleService {
     }
 
     if (body.hasOwnProperty('content')) {
-      updates.content = body.content || '';
+      updates.content = this.htmlSanitizerService.sanitizeCms(body.content || '');
     }
 
     if (body.hasOwnProperty('excerpt')) {
@@ -256,156 +323,233 @@ export class AdminBlogModuleService {
     }
 
     if (body.hasOwnProperty('featured_image')) {
-      updates.featuredImage = body.featured_image || null;
+      updates.featured_image = body.featured_image || null;
     }
 
     if (body.hasOwnProperty('category_id')) {
-      updates.categoryId = body.category_id ? parseInt(body.category_id) : null;
+      updates.category_id = body.category_id ? parseInt(body.category_id) : null;
     }
 
-    // Handle SEO metadata updates
-    if (body.hasOwnProperty('meta_title')) {
-      updates.metaTitle = body.meta_title || null;
+    if (Object.keys(updates).length === 0 && !body.hasOwnProperty('meta_title') && !body.hasOwnProperty('meta_description') && !body.hasOwnProperty('noindex')) {
+      return this.baseApiController.respondWithError('VALIDATION_NO_FIELDS', 'No fields provided for update', null, 400);
     }
 
-    if (body.hasOwnProperty('meta_description')) {
-      updates.metaDescription = body.meta_description || null;
+    if (Object.keys(updates).length > 0) {
+      updates.updated_at = new Date();
+      await this.dataSource.createQueryBuilder()
+        .update('posts')
+        .set(updates)
+        .where('id = :id AND tenant_id = :tenantId', { id, tenantId })
+        .execute();
     }
 
-    if (Object.keys(updates).length === 0) {
-      throw new BadRequestException('No fields provided for update');
+    // Update SEO metadata if provided
+    if (body.hasOwnProperty('meta_title') || body.hasOwnProperty('meta_description') || body.hasOwnProperty('noindex')) {
+      const metaTitle = body.hasOwnProperty('meta_title') ? (body.meta_title || '').trim() : null;
+      const metaDescription = body.hasOwnProperty('meta_description') ? (body.meta_description || '').trim() : null;
+      const noindex = body.hasOwnProperty('noindex') ? (body.noindex ? 1 : 0) : 0;
+
+      await this.dataSource.query(`
+        INSERT INTO seo_metadata (entity_type, entity_id, tenant_id, meta_title, meta_description, noindex, created_at, updated_at)
+        VALUES ('post', ?, ?, ?, ?, ?, NOW(), NOW())
+        ON DUPLICATE KEY UPDATE 
+          meta_title = VALUES(meta_title), 
+          meta_description = VALUES(meta_description), 
+          noindex = VALUES(noindex), 
+          updated_at = NOW()
+      `, [id, tenantId, metaTitle, metaDescription, noindex]);
     }
 
-    await this.repository.update(id, updates);
-
-    // Activity logging would be implemented here
-    // Example: this.activityLogger.log('blog_post_updated', id, body.author_id);
+    // Activity logging
+    await this.activityLogRepository.save({
+      userId: adminId,
+      action: 'admin_update_blog_post',
+      details: `Updated blog post #${id}: ${body.title || post.title}`,
+      createdAt: new Date(),
+    });
 
     // Return updated post
-    return this.getAdminBlogPost(id);
+    return this.getAdminBlogPost(id, req);
   }
 
   /**
    * Delete blog post
    * Source: AdminBlogController.destroy
    */
-  async deleteBlogPost(id: number): Promise<any> {
-    const post = await this.repository.findOne({ where: { id } });
+  async deleteBlogPost(id: number, req?: any): Promise<any> {
+    // Admin authentication and tenant validation
+    const adminId = this.baseApiController.requireAdmin(req);
+    const tenantId = this.baseApiController.getTenantId(req);
+
+    const post = await this.dataSource.createQueryBuilder()
+      .select(['id', 'title'])
+      .from('posts', 'p')
+      .where('p.id = :id AND p.tenant_id = :tenantId', { id, tenantId })
+      .getRawOne();
 
     if (!post) {
       throw new NotFoundException('Blog post not found');
     }
 
-    await this.repository.delete(id);
+    await this.dataSource.createQueryBuilder()
+      .delete()
+      .from('posts')
+      .where('id = :id AND tenant_id = :tenantId', { id, tenantId })
+      .execute();
 
-    // Activity logging would be implemented here
-    // Example: this.activityLogger.log('blog_post_deleted', id, post.authorId);
+    // Activity logging
+    await this.activityLogRepository.save({
+      userId: adminId,
+      action: 'admin_delete_blog_post',
+      details: `Deleted blog post #${id}: ${post.title}`,
+      createdAt: new Date(),
+    });
 
-    return {
-      data: {
-        deleted: true,
-        id
-      }
-    };
+    return this.baseApiController.respondWithData({ deleted: true, id });
   }
 
   /**
    * Toggle blog post status between published and draft
    * Source: AdminBlogController.toggleStatus
    */
-  async togglePostStatus(id: number): Promise<any> {
-    const post = await this.repository.findOne({ where: { id } });
+  async togglePostStatus(id: number, req?: any): Promise<any> {
+    // Admin authentication and tenant validation
+    const adminId = this.baseApiController.requireAdmin(req);
+    const tenantId = this.baseApiController.getTenantId(req);
+
+    const post = await this.dataSource.createQueryBuilder()
+      .select(['id', 'title', 'status'])
+      .from('posts', 'p')
+      .where('p.id = :id AND p.tenant_id = :tenantId', { id, tenantId })
+      .getRawOne();
 
     if (!post) {
       throw new NotFoundException('Blog post not found');
     }
 
     const newStatus = post.status === 'published' ? 'draft' : 'published';
-    const now = Date.now();
 
-    await this.repository.update(id, { 
-      status: newStatus,
-      publishedAt: newStatus === 'published' ? now : post.publishedAt
+    await this.dataSource.createQueryBuilder()
+      .update('posts')
+      .set({ 
+        status: newStatus, 
+        updated_at: new Date(),
+        published_at: newStatus === 'published' ? new Date() : post.published_at
+      })
+      .where('id = :id AND tenant_id = :tenantId', { id, tenantId })
+      .execute();
+
+    // Activity logging
+    await this.activityLogRepository.save({
+      userId: adminId,
+      action: 'admin_toggle_blog_status',
+      details: `Changed blog post #${id} status: ${post.status} -> ${newStatus}`,
+      createdAt: new Date(),
     });
 
-    // Activity logging would be implemented here
-    // Example: this.activityLogger.log('blog_post_status_changed', id, post.authorId);
-
-    return {
-      data: {
-        id,
-        status: newStatus,
-      }
-    };
+    return this.baseApiController.respondWithData({
+      id: parseInt(id.toString()),
+      status: newStatus,
+    });
   }
 
   /**
    * Delete multiple blog posts in bulk
    * Source: AdminBlogController.bulkDelete
    */
-  async bulkDeletePosts(postIds?: number[]): Promise<any> {
+  async bulkDeletePosts(postIds?: number[], req?: any): Promise<any> {
+    // Admin authentication and tenant validation
+    const adminId = this.baseApiController.requireAdmin(req);
+    const tenantId = this.baseApiController.getTenantId(req);
+    
+    // Rate limiting
+    this.baseApiController.rateLimit(req, 'admin_blog_bulk', 10, 60);
+
     const [ids, error] = this.parseBulkIds(postIds);
     if (error) throw error;
 
-    const eligiblePosts = await this.repository.createQueryBuilder()
-      .select('id')
-      .where('id IN (:...ids)', { ids })
-      .getMany();
+    // Complex tenant-aware eligibility checking
+    const placeholders = ids.map(() => '?').join(',');
+    const eligibleRows = await this.dataSource.query(`
+      SELECT id FROM posts WHERE tenant_id = ? AND id IN (${placeholders})
+    `, [tenantId, ...ids]);
 
-    const eligibleIds = eligiblePosts.map(p => p.id);
+    const eligibleIds = eligibleRows.map((r: any) => parseInt(r.id));
     const skippedIds = ids.filter(id => !eligibleIds.includes(id));
 
     let success = 0;
-    const failed = skippedIds.length;
+    let failed = skippedIds.length;
     let touchedIds: number[] = [];
 
     if (eligibleIds.length > 0) {
       try {
-        const result = await this.repository.delete(eligibleIds);
-        success = result.affected || 0;
+        const ph = eligibleIds.map(() => '?').join(',');
+        const result = await this.dataSource.query(`
+          DELETE FROM posts WHERE tenant_id = ? AND id IN (${ph})
+        `, [tenantId, ...eligibleIds]);
+        
+        success = result.affectedRows || 0;
         touchedIds = eligibleIds;
-      } catch (error) {
+      } catch (e) {
+        failed += eligibleIds.length;
         skippedIds.push(...eligibleIds);
       }
     }
 
-    // Activity and audit logging would be implemented here
-    // Example: this.auditLogger.log('bulk_delete_posts', { success, failed, ids: touchedIds });
+    // Activity logging
+    await this.activityLogRepository.save({
+      userId: adminId,
+      action: 'admin_bulk_delete_blog_posts',
+      details: `Bulk deleted ${success} blog posts`,
+      createdAt: new Date(),
+    });
 
-    return {
-      data: {
-        success,
-        failed,
-        skipped_ids: skippedIds,
-      }
-    };
+    // AuditLogService integration
+    await this.auditLogService.log('admin_bulk_delete_blog_posts', null, adminId, {
+      post_ids: touchedIds,
+      skipped_ids: skippedIds,
+      success,
+      failed,
+    });
+
+    return this.baseApiController.respondWithData({
+      success,
+      failed,
+      skipped_ids: skippedIds,
+    });
   }
 
   /**
    * Publish multiple blog posts in bulk
    * Source: AdminBlogController.bulkPublish
    */
-  async bulkPublishPosts(postIds?: number[]): Promise<any> {
+  async bulkPublishPosts(postIds?: number[], req?: any): Promise<any> {
+    // Admin authentication and tenant validation
+    const adminId = this.baseApiController.requireAdmin(req);
+    const tenantId = this.baseApiController.getTenantId(req);
+    
+    // Rate limiting
+    this.baseApiController.rateLimit(req, 'admin_blog_bulk', 10, 60);
+
     const [ids, error] = this.parseBulkIds(postIds);
     if (error) throw error;
 
-    const eligiblePosts = await this.repository.createQueryBuilder()
-      .select(['id', 'status'])
-      .where('id IN (:...ids)', { ids })
-      .getMany();
+    const placeholders = ids.map(() => '?').join(',');
+    const eligibleRows = await this.dataSource.query(`
+      SELECT id, status FROM posts WHERE tenant_id = ? AND id IN (${placeholders})
+    `, [tenantId, ...ids]);
 
-    const existingIds = eligiblePosts.map(p => p.id);
+    const existingIds = eligibleRows.map((r: any) => parseInt(r.id));
     const skippedIds = ids.filter(id => !existingIds.includes(id));
 
-    const toPublish = eligiblePosts
-      .filter(p => p.status !== 'published')
-      .map(p => p.id);
-
-    // Add already published posts to skipped
-    const alreadyPublished = eligiblePosts
-      .filter(p => p.status === 'published')
-      .map(p => p.id);
-    skippedIds.push(...alreadyPublished);
+    const toPublish: number[] = [];
+    for (const row of eligibleRows) {
+      if (row.status !== 'published') {
+        toPublish.push(parseInt(row.id));
+      } else {
+        skippedIds.push(parseInt(row.id));
+      }
+    }
 
     let success = 0;
     const failed = ids.length - existingIds.length;
@@ -413,28 +557,42 @@ export class AdminBlogModuleService {
 
     if (toPublish.length > 0) {
       try {
-        const now = Date.now();
-        const result = await this.repository.update(toPublish, {
-          status: 'published',
-          publishedAt: now,
-        });
-        success = result.affected || 0;
+        const ph = toPublish.map(() => '?').join(',');
+        const result = await this.dataSource.query(`
+          UPDATE posts 
+          SET status = 'published', published_at = COALESCE(published_at, NOW()), updated_at = NOW()
+          WHERE tenant_id = ? AND id IN (${ph})
+        `, [tenantId, ...toPublish]);
+        
+        success = result.affectedRows || 0;
         touchedIds = toPublish;
-      } catch (error) {
+      } catch (e) {
+        failed + toPublish.length;
         skippedIds.push(...toPublish);
       }
     }
 
-    // Activity and audit logging would be implemented here
-    // Example: this.auditLogger.log('bulk_publish_posts', { success, failed, ids: touchedIds });
+    // Activity logging
+    await this.activityLogRepository.save({
+      userId: adminId,
+      action: 'admin_bulk_publish_blog_posts',
+      details: `Bulk published ${success} blog posts`,
+      createdAt: new Date(),
+    });
 
-    return {
-      data: {
-        success,
-        failed,
-        skipped_ids: skippedIds,
-      }
-    };
+    // AuditLogService integration
+    await this.auditLogService.log('admin_bulk_publish_blog_posts', null, adminId, {
+      post_ids: touchedIds,
+      skipped_ids: skippedIds,
+      success,
+      failed,
+    });
+
+    return this.baseApiController.respondWithData({
+      success,
+      failed,
+      skipped_ids: skippedIds,
+    });
   }
 
   /**

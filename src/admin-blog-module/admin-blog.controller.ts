@@ -1,5 +1,6 @@
-import { Controller, Query, Param, Body, ParseIntPipe, Get, Post, Put, Delete, BadRequestException } from '@nestjs/common';
+import { Controller, Query, Param, Body, ParseIntPipe, Get, Post, Put, Delete, BadRequestException, Request, UseGuards, ForbiddenException } from '@nestjs/common';
 import { AdminBlogModuleService } from './admin-blog.service';
+import { AdminCategoriesController } from './admin-categories.controller';
 
 @Controller('admin-blog')
 export class AdminBlogModuleController {
@@ -10,8 +11,8 @@ export class AdminBlogModuleController {
    * Source: AdminBlogController.index
    */
   @Get()
-  async getAdminBlogPosts(@Query('page') page?: number | null, @Query('perPage') perPage?: number | null, @Query('status') status?: string | null) {
-    return this.adminBlogModuleService.getAdminBlogPosts(page, perPage, status);
+  async getAdminBlogPosts(@Query('page') page?: number | null, @Query('perPage') perPage?: number | null, @Query('status') status?: string | null, @Query('search') search?: string | null, @Request() req?: any) {
+    return this.adminBlogModuleService.getAdminBlogPosts(page, perPage, status, search, req);
   }
 
   /**
@@ -19,8 +20,8 @@ export class AdminBlogModuleController {
    * Source: AdminBlogController.show
    */
   @Get(':id')
-  async getAdminBlogPost(@Param('id', ParseIntPipe) id: number) {
-    return this.adminBlogModuleService.getAdminBlogPost(id);
+  async getAdminBlogPost(@Param('id', ParseIntPipe) id: number, @Request() req?: any) {
+    return this.adminBlogModuleService.getAdminBlogPost(id, req);
   }
 
   /**
@@ -28,8 +29,8 @@ export class AdminBlogModuleController {
    * Source: AdminBlogController.store
    */
   @Post()
-  async createBlogPost(@Body() body: Record<string, any>) {
-    return this.adminBlogModuleService.createBlogPost(body);
+  async createBlogPost(@Body() body: Record<string, any>, @Request() req?: any) {
+    return this.adminBlogModuleService.createBlogPost(body, req);
   }
 
   /**
@@ -37,8 +38,8 @@ export class AdminBlogModuleController {
    * Source: AdminBlogController.update
    */
   @Put(':id')
-  async updateBlogPost(@Param('id', ParseIntPipe) id: number, @Body() body: Record<string, any>) {
-    return this.adminBlogModuleService.updateBlogPost(id, body);
+  async updateBlogPost(@Param('id', ParseIntPipe) id: number, @Body() body: Record<string, any>, @Request() req?: any) {
+    return this.adminBlogModuleService.updateBlogPost(id, body, req);
   }
 
   /**
@@ -46,8 +47,8 @@ export class AdminBlogModuleController {
    * Source: AdminBlogController.destroy
    */
   @Delete(':id')
-  async deleteBlogPost(@Param('id', ParseIntPipe) id: number) {
-    return this.adminBlogModuleService.deleteBlogPost(id);
+  async deleteBlogPost(@Param('id', ParseIntPipe) id: number, @Request() req?: any) {
+    return this.adminBlogModuleService.deleteBlogPost(id, req);
   }
 
   /**
@@ -55,8 +56,8 @@ export class AdminBlogModuleController {
    * Source: AdminBlogController.toggleStatus
    */
   @Post(':id/toggle-status')
-  async togglePostStatus(@Param('id', ParseIntPipe) id: number) {
-    return this.adminBlogModuleService.togglePostStatus(id);
+  async togglePostStatus(@Param('id', ParseIntPipe) id: number, @Request() req?: any) {
+    return this.adminBlogModuleService.togglePostStatus(id, req);
   }
 
   /**
@@ -64,8 +65,8 @@ export class AdminBlogModuleController {
    * Source: AdminBlogController.bulkDelete
    */
   @Post('bulk-delete')
-  async bulkDeletePosts(@Body('post_ids') postIds: number[]) {
-    return this.adminBlogModuleService.bulkDeletePosts(postIds);
+  async bulkDeletePosts(@Body('post_ids') postIds: number[], @Request() req?: any) {
+    return this.adminBlogModuleService.bulkDeletePosts(postIds, req);
   }
 
   /**
@@ -73,7 +74,7 @@ export class AdminBlogModuleController {
    * Source: AdminBlogController.bulkPublish
    */
   @Post('bulk-publish')
-  async bulkPublishPosts(@Body('post_ids') postIds: number[]) {
-    return this.adminBlogModuleService.bulkPublishPosts(postIds);
+  async bulkPublishPosts(@Body('post_ids') postIds: number[], @Request() req?: any) {
+    return this.adminBlogModuleService.bulkPublishPosts(postIds, req);
   }
 }

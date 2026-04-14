@@ -9,6 +9,10 @@ export class AdminBlogPost {
   @PrimaryGeneratedColumn()
   id: number;
 
+  /** Mapped from: Post.tenant_id */
+  @Column()
+  tenantId: number;
+
   /** Mapped from: Post.title */
   @Column()
   title: string;
