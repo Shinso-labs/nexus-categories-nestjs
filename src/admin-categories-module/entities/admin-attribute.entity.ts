@@ -1,4 +1,5 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, ManyToOne, JoinColumn } from 'typeorm';
+import { AdminCategory } from './admin-category.entity';
 
 /**
  * AdminAttribute entity.
@@ -37,6 +38,14 @@ export class AdminAttribute {
   @Column({ name: 'sort_order', default: 0 })
   sortOrder: number;
 
+  /** Mapped from: Attribute.category_id */
+  @Column({ name: 'category_id', nullable: true })
+  categoryId: number | null;
+
   @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;
+
+  @ManyToOne(() => AdminCategory)
+  @JoinColumn({ name: 'category_id' })
+  category?: AdminCategory;
 }
