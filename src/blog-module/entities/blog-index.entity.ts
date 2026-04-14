@@ -14,11 +14,11 @@ export class BlogIndex {
   totalPosts: number;
 
   /** Mapped from: Featured posts */
-  @Column()
+  @Column('simple-array')
   featuredPostIds: number[];
 
   /** Mapped from: Recent posts */
-  @Column()
+  @Column('simple-array')
   recentPostIds: number[];
 
   /** Mapped from: Cache timestamp */

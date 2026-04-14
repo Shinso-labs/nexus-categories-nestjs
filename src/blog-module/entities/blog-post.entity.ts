@@ -1,4 +1,5 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, ManyToOne, JoinColumn } from 'typeorm';
+import { Author } from './author.entity';
 
 /**
  * BlogPost entity.
@@ -18,7 +19,7 @@ export class BlogPost {
   title: string;
 
   /** Mapped from: BlogPost.content */
-  @Column()
+  @Column('text')
   content: string;
 
   /** Mapped from: BlogPost.excerpt */
@@ -61,6 +62,14 @@ export class BlogPost {
   @Column({ nullable: true })
   metaDescription: string | null;
 
+  /** Tenant scoping for admin functionality */
+  @Column({ nullable: true })
+  tenantId: number | null;
+
   @CreateDateColumn()
   createdAt: Date;
+
+  @ManyToOne(() => Author)
+  @JoinColumn({ name: 'authorId' })
+  author: Author;
 }

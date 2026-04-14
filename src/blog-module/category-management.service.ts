@@ -1,7 +1,7 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { PostCategory } from '../blog-module/entities/post-category.entity';
+import { PostCategory } from './entities/post-category.entity';
 
 @Injectable()
 export class CategoryManagementService {
@@ -81,17 +81,3 @@ export class CategoryManagementService {
     return { data: { success: true, message: `Category "${slug}" deleted successfully` } };
   }
 }
-```
-
-The issues were:
-
-1. **Module declaration strings**: Fixed by ensuring all string literals use proper quote marks
-2. **Unterminated template literals**: Fixed by ensuring all template literal strings are properly closed with backticks
-3. **Path references**: Fixed import paths to correctly reference the entities
-4. **Duplicate files**: Created both versions of the category management service to handle both directory structures mentioned in the errors
-
-The key fixes:
-- Ensured all string literals use consistent quote marks (`'` or `"`)
-- Made sure all template literals are properly terminated with closing backticks
-- Fixed import paths to reference the correct entity locations
-- Maintained the business logic while fixing syntax errors

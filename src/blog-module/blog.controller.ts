@@ -1,5 +1,9 @@
-import { Controller, Query, Param, Body, ParseIntPipe, Get } from '@nestjs/common';
+import { Controller, Query, Param, Body, ParseIntPipe, Get, Post, Put, Delete, UseGuards, Request, BadRequestException, ForbiddenException } from '@nestjs/common';
 import { BlogModuleService } from './blog.service';
+import { CreateBlogModuleDto } from './dto/create-blog.dto';
+import { UpdateBlogModuleDto } from './dto/update-blog.dto';
+import { BulkDeleteDto } from './dto/bulk-delete.dto';
+import { BulkPublishDto } from './dto/bulk-publish.dto';
 
 @Controller('blog')
 export class BlogModuleController {
@@ -60,12 +64,101 @@ export class BlogModuleController {
   }
 
   /**
-   * Get all published blog posts with pagination
-   * Source: BlogService.getAll
+   * Get all published blog posts with pagination - ADMIN
+   * Source: AdminBlogController.index with admin authentication
    */
-  @Get('all')
-  async getAllPosts(@Query('page') page?: number | null, @Query('perPage') perPage?: number | null) {
-    return this.blogModuleService.getAllPosts(page, perPage);
+  @Get('admin/all')
+  async getAllPosts(
+    @Request() req: any,
+    @Query('page') page?: number,
+    @Query('limit') limit?: number,
+    @Query('status') status?: string,
+    @Query('search') search?: string
+  ) {
+    const adminId = this.requireAdmin(req);
+    const tenantId = this.getTenantId(req);
+    return this.blogModuleService.getAllPosts(page, limit, status, search, tenantId, adminId);
+  }
+
+  /**
+   * Get single blog post by ID - ADMIN
+   * Source: AdminBlogController.show
+   */
+  @Get('admin/:id')
+  async getAdminBlogPost(@Request() req: any, @Param('id', ParseIntPipe) id: number) {
+    const adminId = this.requireAdmin(req);
+    const tenantId = this.getTenantId(req);
+    return this.blogModuleService.getAdminBlogPost(id, tenantId);
+  }
+
+  /**
+   * Create new blog post - ADMIN
+   * Source: AdminBlogController.store
+   */
+  @Post('admin')
+  async createPost(@Request() req: any, @Body() createBlogDto: CreateBlogModuleDto) {
+    const adminId = this.requireAdmin(req);
+    const tenantId = this.getTenantId(req);
+    return this.blogModuleService.createPost(createBlogDto, adminId, tenantId);
+  }
+
+  /**
+   * Update blog post - ADMIN
+   * Source: AdminBlogController.update
+   */
+  @Put('admin/:id')
+  async updatePost(
+    @Request() req: any,
+    @Param('id', ParseIntPipe) id: number,
+    @Body() updateBlogDto: UpdateBlogModuleDto
+  ) {
+    const adminId = this.requireAdmin(req);
+    const tenantId = this.getTenantId(req);
+    return this.blogModuleService.updatePost(id, updateBlogDto, adminId, tenantId);
+  }
+
+  /**
+   * Delete blog post - ADMIN
+   * Source: AdminBlogController.destroy
+   */
+  @Delete('admin/:id')
+  async deletePost(@Request() req: any, @Param('id', ParseIntPipe) id: number) {
+    const adminId = this.requireAdmin(req);
+    const tenantId = this.getTenantId(req);
+    return this.blogModuleService.deletePost(id, adminId, tenantId);
+  }
+
+  /**
+   * Toggle post status - ADMIN
+   * Source: AdminBlogController.toggleStatus
+   */
+  @Post('admin/:id/toggle-status')
+  async toggleStatus(@Request() req: any, @Param('id', ParseIntPipe) id: number) {
+    const adminId = this.requireAdmin(req);
+    const tenantId = this.getTenantId(req);
+    return this.blogModuleService.toggleStatus(id, adminId, tenantId);
+  }
+
+  /**
+   * Bulk delete posts - ADMIN
+   * Source: AdminBlogController.bulkDelete
+   */
+  @Post('admin/bulk-delete')
+  async bulkDelete(@Request() req: any, @Body() bulkDeleteDto: BulkDeleteDto) {
+    const adminId = this.requireAdmin(req);
+    const tenantId = this.getTenantId(req);
+    return this.blogModuleService.bulkDelete(bulkDeleteDto.post_ids, adminId, tenantId);
+  }
+
+  /**
+   * Bulk publish posts - ADMIN
+   * Source: AdminBlogController.bulkPublish
+   */
+  @Post('admin/bulk-publish')
+  async bulkPublish(@Request() req: any, @Body() bulkPublishDto: BulkPublishDto) {
+    const adminId = this.requireAdmin(req);
+    const tenantId = this.getTenantId(req);
+    return this.blogModuleService.bulkPublish(bulkPublishDto.post_ids, adminId, tenantId);
   }
 
   /**
@@ -120,5 +213,60 @@ export class BlogModuleController {
   @Get('resolve-image')
   async resolveImageUrl(@Query('imagePath') imagePath?: string) {
     return this.blogModuleService.resolveImageUrl(imagePath);
+  }
+
+  // Admin helper methods
+  private requireAdmin(req: any): number {
+    const user = req.user;
+    if (!user) {
+      throw new ForbiddenException('Authentication required');
+    }
+    if (!user.isAdmin && user.role !== 'admin') {
+      throw new ForbiddenException('Admin access required');
+    }
+    return user.id;
+  }
+
+  private getTenantId(req: any): number {
+    const user = req.user;
+    if (!user || !user.tenantId) {
+      throw new BadRequestException('Tenant context required');
+    }
+    return user.tenantId;
+  }
+
+  private respondWithPaginatedCollection(data: any[], total: number, page: number, limit: number) {
+    const totalPages = Math.ceil(total / limit);
+    return {
+      data: {
+        items: data,
+        pagination: {
+          current_page: page,
+          per_page: limit,
+          total: total,
+          total_pages: totalPages,
+          has_next: page < totalPages,
+          has_prev: page > 1,
+        }
+      }
+    };
+  }
+
+  private respondWithData(data: any, message?: string, statusCode = 200) {
+    return {
+      data,
+      message,
+      status: statusCode
+    };
+  }
+
+  private respondWithError(code: string, message: string, field?: string, statusCode = 400) {
+    throw new BadRequestException({
+      error: {
+        code,
+        message,
+        field
+      }
+    });
   }
 }
