@@ -9,6 +9,10 @@ export class AdminCategory {
   @PrimaryGeneratedColumn()
   id: number;
 
+  /** Mapped from: Category.tenant_id */
+  @Column()
+  tenantId: number;
+
   /** Mapped from: Category.name */
   @Column()
   name: string;

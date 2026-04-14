@@ -1,7 +1,10 @@
-import { Controller, Query, Param, Body, ParseIntPipe, Get, Post, Put, Delete, BadRequestException, NotFoundException, ConflictException } from '@nestjs/common';
+import { Controller, Query, Param, Body, ParseIntPipe, Get, Post, Put, Delete, BadRequestException, NotFoundException, ConflictException, UseGuards, Req } from '@nestjs/common';
 import { AdminCategoriesModuleService } from './admin-categories.service';
+import { AdminGuard } from '../guards/admin.guard';
+import { Request } from 'express';
 
 @Controller('admin-categories')
+@UseGuards(AdminGuard)
 export class AdminCategoriesModuleController {
   constructor(private readonly adminCategoriesModuleService: AdminCategoriesModuleService) {}
 
@@ -10,8 +13,29 @@ export class AdminCategoriesModuleController {
    * Source: AdminCategoriesController.index
    */
   @Get()
-  async getAdminCategories(@Query('page') page?: number | null, @Query('perPage') perPage?: number | null, @Query('type') type?: string) {
-    return this.adminCategoriesModuleService.getAdminCategories(page, perPage, type);
+  async getAdminCategories(
+    @Query('page') page?: number | null, 
+    @Query('perPage') perPage?: number | null, 
+    @Query('type') type?: string,
+    @Query('status') status?: string,
+    @Query('search') search?: string,
+    @Req() req: Request
+  ) {
+    const adminId = req.user?.id;
+    const tenantId = req.user?.tenantId;
+    
+    if (!adminId || !tenantId) {
+      throw new BadRequestException('Admin authentication required');
+    }
+
+    return this.adminCategoriesModuleService.getAdminCategories(
+      page, 
+      perPage, 
+      type, 
+      status, 
+      search, 
+      tenantId
+    );
   }
 
   /**
@@ -19,8 +43,15 @@ export class AdminCategoriesModuleController {
    * Source: AdminCategoriesController.store
    */
   @Post()
-  async createAdminCategory(@Body() body: Record<string, any>) {
-    return this.adminCategoriesModuleService.createAdminCategory(body);
+  async createAdminCategory(@Body() body: Record<string, any>, @Req() req: Request) {
+    const adminId = req.user?.id;
+    const tenantId = req.user?.tenantId;
+    
+    if (!adminId || !tenantId) {
+      throw new BadRequestException('Admin authentication required');
+    }
+
+    return this.adminCategoriesModuleService.createAdminCategory(body, adminId, tenantId);
   }
 
   /**
@@ -28,8 +59,19 @@ export class AdminCategoriesModuleController {
    * Source: AdminCategoriesController.update
    */
   @Put(':id')
-  async updateAdminCategory(@Param('id', ParseIntPipe) id: number, @Body() body: Record<string, any>) {
-    return this.adminCategoriesModuleService.updateAdminCategory(id, body);
+  async updateAdminCategory(
+    @Param('id', ParseIntPipe) id: number, 
+    @Body() body: Record<string, any>,
+    @Req() req: Request
+  ) {
+    const adminId = req.user?.id;
+    const tenantId = req.user?.tenantId;
+    
+    if (!adminId || !tenantId) {
+      throw new BadRequestException('Admin authentication required');
+    }
+
+    return this.adminCategoriesModuleService.updateAdminCategory(id, body, adminId, tenantId);
   }
 
   /**
@@ -37,8 +79,15 @@ export class AdminCategoriesModuleController {
    * Source: AdminCategoriesController.destroy
    */
   @Delete(':id')
-  async deleteAdminCategory(@Param('id', ParseIntPipe) id: number) {
-    return this.adminCategoriesModuleService.deleteAdminCategory(id);
+  async deleteAdminCategory(@Param('id', ParseIntPipe) id: number, @Req() req: Request) {
+    const adminId = req.user?.id;
+    const tenantId = req.user?.tenantId;
+    
+    if (!adminId || !tenantId) {
+      throw new BadRequestException('Admin authentication required');
+    }
+
+    return this.adminCategoriesModuleService.deleteAdminCategory(id, adminId, tenantId);
   }
 
   /**
@@ -47,8 +96,20 @@ export class AdminCategoriesModuleController {
    * Note: This should be on a separate route like /admin-categories/attributes
    */
   @Get('attributes')
-  async getAdminAttributes(@Query('page') page?: number | null, @Query('perPage') perPage?: number | null) {
-    return this.adminCategoriesModuleService.getAdminAttributes(page, perPage);
+  async getAdminAttributes(
+    @Query('page') page?: number | null, 
+    @Query('perPage') perPage?: number | null,
+    @Query('search') search?: string,
+    @Req() req: Request
+  ) {
+    const adminId = req.user?.id;
+    const tenantId = req.user?.tenantId;
+    
+    if (!adminId || !tenantId) {
+      throw new BadRequestException('Admin authentication required');
+    }
+
+    return this.adminCategoriesModuleService.getAdminAttributes(page, perPage, search, tenantId);
   }
 
   /**
@@ -57,8 +118,15 @@ export class AdminCategoriesModuleController {
    * Note: This should be on a separate route like /admin-categories/attributes
    */
   @Post('attributes')
-  async createAdminAttribute(@Body() body: Record<string, any>) {
-    return this.adminCategoriesModuleService.createAdminAttribute(body);
+  async createAdminAttribute(@Body() body: Record<string, any>, @Req() req: Request) {
+    const adminId = req.user?.id;
+    const tenantId = req.user?.tenantId;
+    
+    if (!adminId || !tenantId) {
+      throw new BadRequestException('Admin authentication required');
+    }
+
+    return this.adminCategoriesModuleService.createAdminAttribute(body, adminId, tenantId);
   }
 
   /**
@@ -67,8 +135,19 @@ export class AdminCategoriesModuleController {
    * Note: This should be on a separate route like /admin-categories/attributes/:id
    */
   @Put('attributes/:id')
-  async updateAdminAttribute(@Param('id', ParseIntPipe) id: number, @Body() body: Record<string, any>) {
-    return this.adminCategoriesModuleService.updateAdminAttribute(id, body);
+  async updateAdminAttribute(
+    @Param('id', ParseIntPipe) id: number, 
+    @Body() body: Record<string, any>,
+    @Req() req: Request
+  ) {
+    const adminId = req.user?.id;
+    const tenantId = req.user?.tenantId;
+    
+    if (!adminId || !tenantId) {
+      throw new BadRequestException('Admin authentication required');
+    }
+
+    return this.adminCategoriesModuleService.updateAdminAttribute(id, body, adminId, tenantId);
   }
 
   /**
@@ -77,7 +156,14 @@ export class AdminCategoriesModuleController {
    * Note: This should be on a separate route like /admin-categories/attributes/:id
    */
   @Delete('attributes/:id')
-  async deleteAdminAttribute(@Param('id', ParseIntPipe) id: number) {
-    return this.adminCategoriesModuleService.deleteAdminAttribute(id);
+  async deleteAdminAttribute(@Param('id', ParseIntPipe) id: number, @Req() req: Request) {
+    const adminId = req.user?.id;
+    const tenantId = req.user?.tenantId;
+    
+    if (!adminId || !tenantId) {
+      throw new BadRequestException('Admin authentication required');
+    }
+
+    return this.adminCategoriesModuleService.deleteAdminAttribute(id, adminId, tenantId);
   }
 }
