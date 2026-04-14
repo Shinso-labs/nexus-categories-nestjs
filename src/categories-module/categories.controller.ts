@@ -20,7 +20,7 @@ export class CategoriesModuleController {
 
   /**
    * Get a specific category by ID
-   * Source: 
+   * Source: CategoriesController.show
    */
   @Get(':id')
   async getCategoryById(@Param('id', ParseIntPipe) id: number) {
@@ -29,7 +29,7 @@ export class CategoriesModuleController {
 
   /**
    * Get a specific category by slug
-   * Source: 
+   * Source: CategoriesController.findBySlug
    */
   @Get('by-slug')
   async getCategoryBySlug(@Query('slug') slug: string) {
@@ -38,7 +38,7 @@ export class CategoriesModuleController {
 
   /**
    * Get hierarchical category tree structure
-   * Source: 
+   * Source: CategoriesController.tree
    */
   @Get('tree')
   async getCategoryTree() {
@@ -47,7 +47,7 @@ export class CategoriesModuleController {
 
   /**
    * Format category data for API response
-   * Source: 
+   * Source: CategoriesController.summary
    */
   @Get('summary')
   async formatCategorySummary(@Query('includePostCount') includePostCount?: boolean) {

@@ -14,7 +14,7 @@ export class CreateCategoriesModuleDto {
   description?: string | null;
 
   @IsOptional()
-  @IsString()
+  @IsNumber()
   parentId?: number | null;
 
   @IsOptional()
@@ -28,6 +28,10 @@ export class CreateCategoriesModuleDto {
   @IsOptional()
   @IsNumber()
   postCount?: number;
+
+  @IsOptional()
+  @IsString()
+  type?: string | null;
 
   @IsOptional()
   @IsNumber()

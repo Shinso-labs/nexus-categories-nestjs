@@ -14,4 +14,4 @@ import { CategorySummary } from './entities/category-summary.entity';
   providers: [CategoriesModuleService],
   exports: [CategoriesModuleService],
 })
-export class CategoriesModuleModule {}
+export class CategoriesModule {}

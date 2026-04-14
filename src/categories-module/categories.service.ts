@@ -31,7 +31,7 @@ export class CategoriesModuleService {
 
   /**
    * Get a specific category by ID
-   * Source: 
+   * Source: CategoriesController.show
    */
   async getCategoryById(id: number): Promise<any> {
     const category = await this.repository.findOne({ where: { id } });
@@ -45,7 +45,7 @@ export class CategoriesModuleService {
 
   /**
    * Get a specific category by slug
-   * Source: 
+   * Source: CategoriesController.findBySlug
    */
   async getCategoryBySlug(slug: string): Promise<any> {
     if (!slug) {
@@ -63,7 +63,7 @@ export class CategoriesModuleService {
 
   /**
    * Get hierarchical category tree structure
-   * Source: 
+   * Source: CategoriesController.tree
    */
   async getCategoryTree(): Promise<any> {
     const queryBuilder = this.repository.createQueryBuilder('category')
@@ -98,7 +98,7 @@ export class CategoriesModuleService {
 
   /**
    * Format category data for API response
-   * Source: 
+   * Source: CategoriesController.summary
    */
   async formatCategorySummary(includePostCount?: boolean): Promise<any> {
     const queryBuilder = this.repository.createQueryBuilder('category')
@@ -125,7 +125,6 @@ export class CategoriesModuleService {
     const queryBuilder = this.repository.createQueryBuilder('category');
     
     if (categoryType) {
-      // Assuming there's a type column or similar field to filter by
       queryBuilder.where('category.type = :type', { type: categoryType });
     }
     
