@@ -1,7 +1,7 @@
 {
-  "name": "blog",
+  "name": "admin-blog",
   "version": "0.1.0",
-  "description": "BlogModule — translated from Laravel",
+  "description": "AdminBlogModule — translated from Laravel",
   "scripts": {
     "build": "nest build",
     "start": "nest start",
