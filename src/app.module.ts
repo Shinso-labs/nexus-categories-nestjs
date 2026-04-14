@@ -1,9 +1,9 @@
 import { Module } from '@nestjs/common';
-import { AdminBlogModuleModule } from './admin-blog/admin-blog.module';
+import { AdminCategoriesModuleModule } from './admin-categories/admin-categories.module';
 
 @Module({
   imports: [
-    AdminBlogModuleModule,
+    AdminCategoriesModuleModule,
   ],
 })
 export class AppModule {}
