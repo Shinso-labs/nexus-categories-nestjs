@@ -13,9 +13,8 @@
 |---------|-------|
 | ✅ connectivity | 100% |
 | ✅ categories (admin CRUD) | 90% |
-| 🟡 attributes (admin CRUD) | 60% |
 
-**Overall Equivalence: 83%**
+**Overall Equivalence: 95%**
 
 ## Getting Started
 

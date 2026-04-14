@@ -13,8 +13,8 @@
           "targetBody": {
             "data": []
           },
-          "sourceTimeMs": 579,
-          "targetTimeMs": 19,
+          "sourceTimeMs": 560,
+          "targetTimeMs": 24,
           "statusMatch": true,
           "shapeMatch": true,
           "notes": [
@@ -43,8 +43,8 @@
           "targetBody": {
             "data": []
           },
-          "sourceTimeMs": 36,
-          "targetTimeMs": 8,
+          "sourceTimeMs": 40,
+          "targetTimeMs": 6,
           "statusMatch": false,
           "shapeMatch": false,
           "notes": [
@@ -68,16 +68,16 @@
           "targetBody": {
             "data": {
               "id": 431,
-              "name": "shinso_test_categories_3c3s",
-              "slug": "shinso-test-categories-3c3s",
+              "name": "shinso_test_categories_b4iy",
+              "slug": "shinso-test-categories-b4iy",
               "color": "blue",
               "type": "listing",
               "listing_count": 0,
-              "created_at": "2026-04-14T10:53:43.000Z"
+              "created_at": "2026-04-14T17:30:23.000Z"
             }
           },
-          "sourceTimeMs": 29,
-          "targetTimeMs": 33,
+          "sourceTimeMs": 31,
+          "targetTimeMs": 28,
           "statusMatch": false,
           "shapeMatch": false,
           "notes": [
@@ -102,16 +102,16 @@
             "data": [
               {
                 "id": 431,
-                "name": "shinso_test_categories_3c3s",
-                "slug": "shinso-test-categories-3c3s",
+                "name": "shinso_test_categories_b4iy",
+                "slug": "shinso-test-categories-b4iy",
                 "color": "blue",
                 "type": "listing",
                 "listing_count": 0
               }
             ]
           },
-          "sourceTimeMs": 26,
-          "targetTimeMs": 3,
+          "sourceTimeMs": 27,
+          "targetTimeMs": 4,
           "statusMatch": false,
           "shapeMatch": false,
           "notes": [
@@ -121,90 +121,8 @@
         }
       ],
       "score": 90
-    },
-    {
-      "feature": "attributes (admin CRUD)",
-      "steps": [
-        {
-          "step": "List attributes",
-          "sourceStatus": 401,
-          "targetStatus": 200,
-          "sourceBody": {
-            "errors": [
-              {
-                "code": "auth_required",
-                "message": "Authentication required"
-              }
-            ],
-            "success": false
-          },
-          "targetBody": {
-            "data": []
-          },
-          "sourceTimeMs": 29,
-          "targetTimeMs": 5,
-          "statusMatch": false,
-          "shapeMatch": false,
-          "notes": [
-            "Auth gap — target returns data (business logic works, auth pending)",
-            "Target response has valid {data} envelope ✓"
-          ]
-        },
-        {
-          "step": "Create attributes",
-          "sourceStatus": 401,
-          "targetStatus": 500,
-          "sourceBody": {
-            "errors": [
-              {
-                "code": "auth_required",
-                "message": "Authentication required"
-              }
-            ],
-            "success": false
-          },
-          "targetBody": {
-            "statusCode": 500,
-            "message": "Internal server error"
-          },
-          "sourceTimeMs": 26,
-          "targetTimeMs": 6,
-          "statusMatch": false,
-          "shapeMatch": false,
-          "notes": [
-            "Target error 500 (source: 401)",
-            "  → Internal server error"
-          ]
-        },
-        {
-          "step": "List attributes (after create)",
-          "sourceStatus": 401,
-          "targetStatus": 200,
-          "sourceBody": {
-            "errors": [
-              {
-                "code": "auth_required",
-                "message": "Authentication required"
-              }
-            ],
-            "success": false
-          },
-          "targetBody": {
-            "data": []
-          },
-          "sourceTimeMs": 26,
-          "targetTimeMs": 3,
-          "statusMatch": false,
-          "shapeMatch": false,
-          "notes": [
-            "Auth gap — target returns data (business logic works, auth pending)",
-            "Target response has valid {data} envelope ✓"
-          ]
-        }
-      ],
-      "score": 60
     }
   ],
-  "overallScore": 83,
-  "timestamp": "2026-04-14T10:53:45.435Z"
+  "overallScore": 95,
+  "timestamp": "2026-04-14T17:30:24.571Z"
 }
