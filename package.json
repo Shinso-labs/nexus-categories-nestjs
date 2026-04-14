@@ -1,7 +1,7 @@
 {
-  "name": "admin-categories",
+  "name": "categories",
   "version": "0.1.0",
-  "description": "AdminCategoriesModule — translated from Laravel",
+  "description": "CategoriesModule — translated from Laravel",
   "scripts": {
     "build": "nest build",
     "start": "nest start",
