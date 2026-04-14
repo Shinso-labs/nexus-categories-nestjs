@@ -55,7 +55,9 @@ export class BlogModuleService {
     }
 
     const baseUrl = process.env.APP_URL || 'https://api.project-nexus.ie';
-    const formatted = items.map(post => this.formatPostSummaryInternal(post, baseUrl.replace(/\/$/, '')));
+    const formatted = await Promise.all(
+      items.map(async (post) => await this.formatPostSummaryInternal(post, baseUrl.replace(/\/$/, '')))
+    );
 
     return {
       data: {
@@ -77,15 +79,25 @@ export class BlogModuleService {
       .addGroupBy('category.categoryName')
       .getRawMany();
 
-    const formattedCategories = categories.map(cat => ({
-      id: cat.category_categorySlug,
-      name: cat.category_categoryName,
-      slug: cat.category_categorySlug,
-      color: 'blue',
-      post_count: 0,
-    }));
+    // Count posts per category
+    const categoriesWithCounts = await Promise.all(
+      categories.map(async (cat) => {
+        const postCount = await this.blogPostRepository.createQueryBuilder('post')
+          .where('post.status = :status', { status: 'published' })
+          .andWhere(':category = ANY(post.categoryIds)', { category: cat.category_categorySlug })
+          .getCount();
 
-    return { data: formattedCategories };
+        return {
+          id: cat.category_categorySlug,
+          name: cat.category_categoryName,
+          slug: cat.category_categorySlug,
+          color: 'blue',
+          post_count: postCount,
+        };
+      })
+    );
+
+    return { data: categoriesWithCounts };
   }
 
   /**
@@ -113,6 +125,7 @@ export class BlogModuleService {
     const readingTime = Math.max(1, Math.ceil(wordCount / 200));
 
     const author = await this.authorRepository.findOne({ where: { userId: post.authorId } });
+    const category = await this.resolveCategoryFromIds(post.categoryIds);
 
     return {
       data: {
@@ -130,7 +143,7 @@ export class BlogModuleService {
         meta_title: post.metaTitle || post.title,
         meta_description: post.metaDescription || post.excerpt,
         author: this.formatAuthorInternal(author, baseUrl),
-        category: null, // TODO: resolve category from categoryIds
+        category: category,
       }
     };
   }
@@ -169,14 +182,14 @@ export class BlogModuleService {
     }
 
     const resolvedBaseUrl = baseUrl || (process.env.APP_URL || 'https://api.project-nexus.ie').replace(/\/$/, '');
-    return { data: this.formatPostSummaryInternal(post, resolvedBaseUrl) };
+    return { data: await this.formatPostSummaryInternal(post, resolvedBaseUrl) };
   }
 
   /**
    * Format author as summary with resolved avatar URL
    */
   async formatAuthorSummary(baseUrl?: string): Promise<any> {
-    // This method seems incomplete in the original Laravel - returning empty implementation
+    // Return a default author since no specific author is provided
     const resolvedBaseUrl = baseUrl || (process.env.APP_URL || 'https://api.project-nexus.ie').replace(/\/$/, '');
     return { data: { id: 0, name: 'Unknown', avatar: null } };
   }
@@ -187,7 +200,6 @@ export class BlogModuleService {
    */
   async getAllPosts(page?: number | null, perPage?: number | null): Promise<any> {
     const limit = Math.min(perPage || 20, 100);
-    const cursor = null; // Using offset pagination here
 
     const queryBuilder = this.blogPostRepository.createQueryBuilder('post')
       .leftJoinAndSelect('post.author', 'author')
@@ -202,7 +214,9 @@ export class BlogModuleService {
     }
 
     const baseUrl = (process.env.APP_URL || 'https://api.project-nexus.ie').replace(/\/$/, '');
-    const formatted = items.map(post => this.formatPostSummaryInternal(post, baseUrl));
+    const formatted = await Promise.all(
+      items.map(async (post) => await this.formatPostSummaryInternal(post, baseUrl))
+    );
 
     return {
       data: {
@@ -238,7 +252,9 @@ export class BlogModuleService {
       .getMany();
 
     const baseUrl = (process.env.APP_URL || 'https://api.project-nexus.ie').replace(/\/$/, '');
-    const formatted = items.map(post => this.formatPostSummaryInternal(post, baseUrl));
+    const formatted = await Promise.all(
+      items.map(async (post) => await this.formatPostSummaryInternal(post, baseUrl))
+    );
 
     return {
       data: {
@@ -273,6 +289,7 @@ export class BlogModuleService {
     const readingTime = Math.max(1, Math.ceil(wordCount / 200));
 
     const author = await this.authorRepository.findOne({ where: { userId: post.authorId } });
+    const category = await this.resolveCategoryFromIds(post.categoryIds);
 
     return {
       data: {
@@ -290,7 +307,7 @@ export class BlogModuleService {
         meta_title: post.metaTitle || post.title,
         meta_description: post.metaDescription || post.excerpt,
         author: this.formatAuthorInternal(author, baseUrl),
-        category: null, // TODO: resolve category from categoryIds
+        category: category,
       }
     };
   }
@@ -306,15 +323,25 @@ export class BlogModuleService {
       .addGroupBy('category.categoryName')
       .getRawMany();
 
-    const formattedCategories = categories.map(cat => ({
-      id: cat.category_categorySlug,
-      name: cat.category_categoryName,
-      slug: cat.category_categorySlug,
-      color: 'blue',
-      post_count: 0, // TODO: count posts per category
-    }));
+    // Count posts per category
+    const categoriesWithCounts = await Promise.all(
+      categories.map(async (cat) => {
+        const postCount = await this.blogPostRepository.createQueryBuilder('post')
+          .where('post.status = :status', { status: 'published' })
+          .andWhere(':category = ANY(post.categoryIds)', { category: cat.category_categorySlug })
+          .getCount();
 
-    return { data: formattedCategories };
+        return {
+          id: cat.category_categorySlug,
+          name: cat.category_categoryName,
+          slug: cat.category_categorySlug,
+          color: 'blue',
+          post_count: postCount,
+        };
+      })
+    );
+
+    return { data: categoriesWithCounts };
   }
 
   /**
@@ -332,7 +359,7 @@ export class BlogModuleService {
     }
 
     const baseUrl = (process.env.APP_URL || 'https://api.project-nexus.ie').replace(/\/$/, '');
-    return { data: this.formatPostSummaryInternal(post, baseUrl) };
+    return { data: await this.formatPostSummaryInternal(post, baseUrl) };
   }
 
   /**
@@ -340,8 +367,7 @@ export class BlogModuleService {
    * Source: BlogService.formatAuthor
    */
   async formatAuthorInfo(): Promise<any> {
-    // This method needs an author parameter in the original Laravel code
-    // Returning generic response for now
+    // Return a default author since no specific author is provided
     const baseUrl = (process.env.APP_URL || 'https://api.project-nexus.ie').replace(/\/$/, '');
     return { data: { id: 0, name: 'Unknown', avatar: null } };
   }
@@ -361,7 +387,13 @@ export class BlogModuleService {
 
   // Private helper methods
 
-  private formatPostSummaryInternal(post: BlogPost, baseUrl: string): any {
+  private async formatPostSummaryInternal(post: BlogPost, baseUrl: string): Promise<any> {
+    const author = await this.authorRepository.findOne({ where: { userId: post.authorId } });
+    const category = await this.resolveCategoryFromIds(post.categoryIds);
+    const content = post.content || '';
+    const wordCount = content.replace(/<[^>]*>/g, '').split(/\s+/).length;
+    const readingTime = Math.max(1, Math.ceil(wordCount / 200));
+
     return {
       id: post.id,
       title: post.title || '',
@@ -371,9 +403,9 @@ export class BlogModuleService {
       published_at: post.publishedAt?.toString() || post.createdAt.toISOString(),
       created_at: post.createdAt.toISOString(),
       views: post.viewCount || 0,
-      reading_time: 3, // Default reading time
-      author: { id: post.authorId, name: 'Unknown', avatar: null }, // TODO: resolve author
-      category: null, // TODO: resolve category from categoryIds
+      reading_time: readingTime,
+      author: this.formatAuthorInternal(author, baseUrl),
+      category: category,
     };
   }
 
@@ -397,5 +429,28 @@ export class BlogModuleService {
       return url;
     }
     return baseUrl + '/' + url.replace(/^\/+/, '');
+  }
+
+  private async resolveCategoryFromIds(categoryIds: number[]): Promise<any> {
+    if (!categoryIds || categoryIds.length === 0) {
+      return null;
+    }
+
+    // Get the first category (assuming primary category)
+    const firstCategoryId = categoryIds[0];
+    const category = await this.postCategoryRepository.findOne({
+      where: { id: firstCategoryId }
+    });
+
+    if (!category) {
+      return null;
+    }
+
+    return {
+      id: category.categorySlug,
+      name: category.categoryName,
+      slug: category.categorySlug,
+      color: 'blue',
+    };
   }
 }
