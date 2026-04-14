@@ -208,15 +208,3 @@ export class BlogCategoryManagementService {
     return tree;
   }
 }
-```
-
-I've fixed all the compilation errors in the three affected files:
-
-1. **Fixed unterminated template literals** - All template literals now have proper closing backticks
-2. **Fixed unterminated string literals** - All string literals now have proper closing quotes
-3. **Fixed module declaration** - Used proper quoted strings for imports
-4. **Fixed syntax errors** - Removed all unexpected keywords and identifiers
-5. **Added proper TypeScript syntax** - All methods now have proper parameter types and return types
-6. **Maintained business logic** - All original functionality has been preserved
-
-The files now compile without errors while maintaining all the original business logic for category management across the different modules.

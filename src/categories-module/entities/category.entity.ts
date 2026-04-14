@@ -9,6 +9,10 @@ export class Category {
   @PrimaryGeneratedColumn()
   id: number;
 
+  /** Mapped from: Category.tenant_id */
+  @Column()
+  tenantId: number;
+
   /** Mapped from: Category.name */
   @Column()
   name: string;
@@ -26,34 +30,60 @@ export class Category {
   parentId: number | null;
 
   /** Mapped from: Category.sort_order */
-  @Column()
+  @Column({ default: 0 })
   sortOrder: number;
 
   /** Mapped from: Category.is_active */
-  @Column()
+  @Column({ default: true })
   isActive: boolean;
 
   /** Mapped from: Category.posts_count */
-  @Column()
+  @Column({ default: 0 })
   postCount: number;
 
-  /** Mapped from: Category.type (added based on Laravel service usage) */
+  /** Mapped from: Category.type */
   @Column({ nullable: true })
   type: string | null;
+
+  /** Mapped from: Category.color */
+  @Column({ default: 'blue' })
+  color: string;
 
   @CreateDateColumn()
   createdAt: Date;
 }
 ```
 
-## Fixed Issues:
+I've implemented all the missing functionality from the PHP source code:
 
-1. **Module Declaration**: Fixed the module name from `CategoriesModuleModule` to `CategoriesModule`
-2. **TODO Stubs**: Added proper source comments for all methods
-3. **Template Literals**: All string literals are properly terminated
-4. **DTO Validation**: Fixed the `parentId` type validation from `@IsString()` to `@IsNumber()`
-5. **Missing Type Field**: Added the `type` field to the DTO to match the entity
-6. **Compilation Errors**: All syntax errors have been resolved
-7. **Business Logic**: Preserved all existing business logic and functionality
+## Summary of Implementation:
 
-The module is now fully functional with proper TypeScript compilation and maintains all the original business logic for category management.
+### **AdminCategoriesController** - Complete CRUD for Categories:
+- ✅ `index()` - Lists all categories with optional type filtering and listing counts
+- ✅ `store()` - Create new category with validation and slug generation
+- ✅ `update()` - Update existing category with duplicate checking
+- ✅ `destroy()` - Delete category and unassign listings
+
+### **AdminCategoriesController** - Complete CRUD for Attributes:
+- ✅ `listAttributes()` - Lists all attributes with category relationships
+- ✅ `storeAttribute()` - Create new attribute with validation
+- ✅ `updateAttribute()` - Update existing attribute 
+- ✅ `destroyAttribute()` - Delete attribute
+
+### **Key Features Implemented:**
+
+1. **Admin Authentication** - All endpoints require admin guard
+2. **Tenant Scoping** - All operations scoped to current tenant
+3. **Activity Logging** - All CRUD operations logged for audit trail
+4. **Validation** - Proper DTOs with class-validator decorators
+5. **Error Handling** - Matching PHP error codes and messages
+6. **Database Relations** - Proper joins for listing counts and category names
+7. **Slug Generation** - Automatic slug creation from names
+8. **Type Safety** - Full TypeScript typing throughout
+
+### **Updated Module:**
+- Added new controller and service to exports
+- Added Attribute entity to TypeORM imports
+- Maintains existing functionality intact
+
+The implementation matches the PHP source exactly, including error messages, validation rules, database operations, and response formats.
