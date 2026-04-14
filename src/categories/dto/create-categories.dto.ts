@@ -14,7 +14,7 @@ export class CreateCategoriesModuleDto {
   description?: string | null;
 
   @IsOptional()
-  @IsString()
+  @IsNumber()
   parentId?: number | null;
 
   @IsOptional()
@@ -32,4 +32,16 @@ export class CreateCategoriesModuleDto {
   @IsOptional()
   @IsNumber()
   updatedAt?: number;
+
+  @IsOptional()
+  @IsString()
+  color?: string;
+
+  @IsOptional()
+  @IsString()
+  type?: string;
+
+  @IsOptional()
+  @IsNumber()
+  tenantId?: number;
 }

@@ -2,12 +2,17 @@ import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn } from 'typeor
 
 /**
  * CategoryIndex entity.
+ * Enhanced with tenant scoping
  * Source: Category indexing metadata
  */
 @Entity('category_indexes')
 export class CategoryIndex {
   @PrimaryGeneratedColumn()
   id: number;
+
+  /** Mapped from: Tenant ID */
+  @Column()
+  tenantId: number;
 
   /** Mapped from: Category count */
   @Column()
