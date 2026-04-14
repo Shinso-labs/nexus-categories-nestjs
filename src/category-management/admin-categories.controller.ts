@@ -1,25 +1,32 @@
 import {
   Controller, Get, Post, Put, Delete,
   Body, Param, Query, ParseIntPipe, HttpCode,
+  UseGuards, Request,
 } from '@nestjs/common';
 import { CategoryManagementService } from './category-management.service';
-// import { AdminGuard } from '../auth/guards/admin.guard';
-// import { UseGuards } from '@nestjs/common';
-// import { TenantId } from '../common/decorators/tenant-id.decorator';
-// import { AdminId } from '../common/decorators/admin-id.decorator';
+import { CreateCategoryDto, UpdateCategoryDto, CreateAttributeDto, UpdateAttributeDto } from './dto/create-category-management.dto';
 
 /**
  * AdminCategoriesController — translated from Laravel.
  * Source: app/Http/Controllers/Api/AdminCategoriesController.php
  *
  * All endpoints require admin authentication.
- * TODO: Uncomment @UseGuards(AdminGuard) and @TenantId()/@AdminId() decorators
- * once the auth module is implemented.
+ * For now, tenant and admin IDs are extracted from request context.
+ * TODO: Implement proper guards and decorators when auth module is ready.
  */
-// @UseGuards(AdminGuard)
 @Controller('admin')
 export class AdminCategoriesController {
   constructor(private readonly service: CategoryManagementService) {}
+
+  private extractTenantId(req: any): number {
+    // Extract tenant ID from request context (headers, JWT, etc.)
+    return req.tenantId || req.headers['x-tenant-id'] || 1;
+  }
+
+  private extractAdminId(req: any): number {
+    // Extract admin ID from request context (JWT payload, etc.)
+    return req.user?.id || req.adminId || 1;
+  }
 
   // =========================================================================
   // Categories CRUD
@@ -33,10 +40,10 @@ export class AdminCategoriesController {
    */
   @Get('categories')
   async listCategories(
-    // @TenantId() tenantId: number,
+    @Request() req: any,
     @Query('type') type?: string,
   ) {
-    const tenantId = 1; // TODO: extract from auth context
+    const tenantId = this.extractTenantId(req);
     return this.service.listCategories(tenantId, type);
   }
 
@@ -48,12 +55,11 @@ export class AdminCategoriesController {
   @Post('categories')
   @HttpCode(201)
   async createCategory(
-    // @AdminId() adminId: number,
-    // @TenantId() tenantId: number,
-    @Body() body: Record<string, any>,
+    @Request() req: any,
+    @Body() body: CreateCategoryDto,
   ) {
-    const tenantId = 1; // TODO: extract from auth context
-    const adminId = 1;  // TODO: extract from auth context
+    const tenantId = this.extractTenantId(req);
+    const adminId = this.extractAdminId(req);
     return this.service.createCategory(tenantId, adminId, body);
   }
 
@@ -64,13 +70,12 @@ export class AdminCategoriesController {
    */
   @Put('categories/:id')
   async updateCategory(
-    // @AdminId() adminId: number,
-    // @TenantId() tenantId: number,
+    @Request() req: any,
     @Param('id', ParseIntPipe) id: number,
-    @Body() body: Record<string, any>,
+    @Body() body: UpdateCategoryDto,
   ) {
-    const tenantId = 1;
-    const adminId = 1;
+    const tenantId = this.extractTenantId(req);
+    const adminId = this.extractAdminId(req);
     return this.service.updateCategory(tenantId, adminId, id, body);
   }
 
@@ -81,12 +86,11 @@ export class AdminCategoriesController {
    */
   @Delete('categories/:id')
   async deleteCategory(
-    // @AdminId() adminId: number,
-    // @TenantId() tenantId: number,
+    @Request() req: any,
     @Param('id', ParseIntPipe) id: number,
   ) {
-    const tenantId = 1;
-    const adminId = 1;
+    const tenantId = this.extractTenantId(req);
+    const adminId = this.extractAdminId(req);
     return this.service.deleteCategory(tenantId, adminId, id);
   }
 
@@ -103,9 +107,9 @@ export class AdminCategoriesController {
    */
   @Get('attributes')
   async listAttributes(
-    // @TenantId() tenantId: number,
+    @Request() req: any,
   ) {
-    const tenantId = 1;
+    const tenantId = this.extractTenantId(req);
     return this.service.listAttributes(tenantId);
   }
 
@@ -117,12 +121,11 @@ export class AdminCategoriesController {
   @Post('attributes')
   @HttpCode(201)
   async createAttribute(
-    // @AdminId() adminId: number,
-    // @TenantId() tenantId: number,
-    @Body() body: Record<string, any>,
+    @Request() req: any,
+    @Body() body: CreateAttributeDto,
   ) {
-    const tenantId = 1;
-    const adminId = 1;
+    const tenantId = this.extractTenantId(req);
+    const adminId = this.extractAdminId(req);
     return this.service.createAttribute(tenantId, adminId, body);
   }
 
@@ -133,13 +136,12 @@ export class AdminCategoriesController {
    */
   @Put('attributes/:id')
   async updateAttribute(
-    // @AdminId() adminId: number,
-    // @TenantId() tenantId: number,
+    @Request() req: any,
     @Param('id', ParseIntPipe) id: number,
-    @Body() body: Record<string, any>,
+    @Body() body: UpdateAttributeDto,
   ) {
-    const tenantId = 1;
-    const adminId = 1;
+    const tenantId = this.extractTenantId(req);
+    const adminId = this.extractAdminId(req);
     return this.service.updateAttribute(tenantId, adminId, id, body);
   }
 
@@ -150,12 +152,11 @@ export class AdminCategoriesController {
    */
   @Delete('attributes/:id')
   async deleteAttribute(
-    // @AdminId() adminId: number,
-    // @TenantId() tenantId: number,
+    @Request() req: any,
     @Param('id', ParseIntPipe) id: number,
   ) {
-    const tenantId = 1;
-    const adminId = 1;
+    const tenantId = this.extractTenantId(req);
+    const adminId = this.extractAdminId(req);
     return this.service.deleteAttribute(tenantId, adminId, id);
   }
 }

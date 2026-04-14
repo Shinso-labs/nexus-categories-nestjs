@@ -1,4 +1,4 @@
-import { Controller, Get, Query } from '@nestjs/common';
+import { Controller, Get, Query, Request } from '@nestjs/common';
 import { CategoryManagementService } from './category-management.service';
 
 /**
@@ -11,17 +11,23 @@ import { CategoryManagementService } from './category-management.service';
 export class PublicCategoriesController {
   constructor(private readonly service: CategoryManagementService) {}
 
+  private extractTenantId(req: any): number {
+    // Extract tenant ID from request context (headers, subdomain, etc.)
+    return req.tenantId || req.headers['x-tenant-id'] || req.subdomains?.[0] || 1;
+  }
+
   /**
    * GET /api/v2/categories
    * List categories, optionally filtered by type.
    * Source: CategoriesController.index() + CategoryService.getByType() / getAll()
    */
   @Get()
-  async index(@Query('type') type?: string) {
-    // Public categories endpoint does not scope by tenant — returns
-    // categories matching the request's tenant context (to be injected
-    // via middleware once auth is implemented).
-    const tenantId = 1; // TODO: extract from request context
+  async index(
+    @Request() req: any,
+    @Query('type') type?: string,
+  ) {
+    // Extract tenant context from request
+    const tenantId = this.extractTenantId(req);
     return this.service.getPublicCategories(tenantId, type);
   }
 }

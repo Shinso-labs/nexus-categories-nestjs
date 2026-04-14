@@ -24,6 +24,19 @@ export class CategoryManagementService {
   ) {}
 
   // =========================================================================
+  // Activity logging helper
+  // =========================================================================
+
+  private async logActivity(adminId: number, action: string, message: string) {
+    // Simple logging implementation for now
+    // TODO: Replace with proper ActivityLogService when available
+    console.log(`[ACTIVITY] Admin ${adminId} - ${action}: ${message}`);
+    
+    // Store in database if needed
+    // Implementation would depend on activity log table structure
+  }
+
+  // =========================================================================
   // Error helpers — match Laravel BaseApiController response format
   // =========================================================================
 
@@ -122,9 +135,9 @@ export class CategoryManagementService {
       this.categoryRepo.create({ tenantId, name, slug, color, type }),
     );
 
-    // Activity log — matches: ActivityLog::log($adminId, 'admin_create_category', ...)
-    // TODO: inject ActivityLogService
-    // await this.activityLog.log(adminId, 'admin_create_category', `Created category #${category.id}: ${name} (type: ${type})`);
+    // Activity log
+    await this.logActivity(adminId, 'admin_create_category', 
+      `Created category #${category.id}: ${name} (type: ${type})`);
 
     return this.respondWithData({
       id: category.id,
@@ -179,7 +192,7 @@ export class CategoryManagementService {
     await this.categoryRepo.update(id, { name, slug, color, type });
 
     // Activity log
-    // await this.activityLog.log(adminId, 'admin_update_category', `Updated category #${id}: ${name}`);
+    await this.logActivity(adminId, 'admin_update_category', `Updated category #${id}: ${name}`);
 
     const updated = await this.categoryRepo
       .createQueryBuilder('c')
@@ -234,8 +247,8 @@ export class CategoryManagementService {
     await this.categoryRepo.delete({ id, tenantId });
 
     // Activity log
-    // await this.activityLog.log(adminId, 'admin_delete_category',
-    //   `Deleted category #${id}: ${result.c_name}${listingCount > 0 ? ` (${listingCount} listings unassigned)` : ''}`);
+    await this.logActivity(adminId, 'admin_delete_category',
+      `Deleted category #${id}: ${result.c_name}${listingCount > 0 ? ` (${listingCount} listings unassigned)` : ''}`);
 
     return this.respondWithData({
       deleted: true,
@@ -310,7 +323,7 @@ export class CategoryManagementService {
     );
 
     // Activity log
-    // await this.activityLog.log(adminId, 'admin_create_attribute', `Created attribute #${attribute.id}: ${name}`);
+    await this.logActivity(adminId, 'admin_create_attribute', `Created attribute #${attribute.id}: ${name}`);
 
     return this.respondWithData({
       id: attribute.id,
@@ -343,7 +356,7 @@ export class CategoryManagementService {
     await this.attributeRepo.update(id, { name, categoryId, inputType, isActive });
 
     // Activity log
-    // await this.activityLog.log(adminId, 'admin_update_attribute', `Updated attribute #${id}: ${name}`);
+    await this.logActivity(adminId, 'admin_update_attribute', `Updated attribute #${id}: ${name}`);
 
     return this.respondWithData({
       id,
@@ -369,7 +382,7 @@ export class CategoryManagementService {
     await this.attributeRepo.delete({ id, tenantId });
 
     // Activity log
-    // await this.activityLog.log(adminId, 'admin_delete_attribute', `Deleted attribute #${id}: ${attribute!.name}`);
+    await this.logActivity(adminId, 'admin_delete_attribute', `Deleted attribute #${id}: ${attribute!.name}`);
 
     return this.respondWithData({ deleted: true, id });
   }
