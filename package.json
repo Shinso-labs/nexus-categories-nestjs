@@ -1,7 +1,7 @@
 {
-  "name": "categories",
+  "name": "blog",
   "version": "0.1.0",
-  "description": "CategoriesModule — translated from Laravel",
+  "description": "BlogModule — translated from Laravel",
   "scripts": {
     "build": "nest build",
     "start": "nest start",
