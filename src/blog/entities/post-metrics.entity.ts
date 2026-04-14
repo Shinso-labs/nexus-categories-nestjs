@@ -14,7 +14,7 @@ export class PostMetrics {
   postId: number;
 
   /** Mapped from: BlogService view tracking */
-  @Column()
+  @Column({ default: 0 })
   viewCount: number;
 
   /** Mapped from: BlogService view timestamp */

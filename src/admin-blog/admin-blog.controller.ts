@@ -10,17 +10,22 @@ export class AdminBlogModuleController {
    * Source: AdminBlogController.index
    */
   @Get()
-  async getAdminBlogPosts(@Query('page') page?: number | null, @Query('perPage') perPage?: number | null, @Query('status') status?: string | null) {
-    return this.adminBlogModuleService.getAdminBlogPosts(page, perPage, status);
+  async getAdminBlogPosts(
+    @Query('page') page?: number | null, 
+    @Query('perPage') perPage?: number | null, 
+    @Query('status') status?: string | null,
+    @Query('search') search?: string | null
+  ) {
+    return this.adminBlogModuleService.getAdminBlogPosts(page, perPage, status, search);
   }
 
   /**
    * Get single blog post for admin editing
    * Source: AdminBlogController.show
    */
-  @Get()
-  async getAdminBlogPost() {
-    return this.adminBlogModuleService.getAdminBlogPost();
+  @Get(':id')
+  async getAdminBlogPost(@Param('id', ParseIntPipe) id: number) {
+    return this.adminBlogModuleService.getAdminBlogPost(id);
   }
 
   /**
@@ -54,17 +59,17 @@ export class AdminBlogModuleController {
    * Toggle blog post status between published and draft
    * Source: AdminBlogController.toggleStatus
    */
-  @Get()
-  async togglePostStatus() {
-    return this.adminBlogModuleService.togglePostStatus();
+  @Post(':id/toggle-status')
+  async togglePostStatus(@Param('id', ParseIntPipe) id: number) {
+    return this.adminBlogModuleService.togglePostStatus(id);
   }
 
   /**
    * Delete multiple blog posts in bulk
    * Source: AdminBlogController.bulkDelete
    */
-  @Get()
-  async bulkDeletePosts(@Query('postIds') postIds?: number[]) {
+  @Post('bulk-delete')
+  async bulkDeletePosts(@Body('post_ids') postIds?: number[]) {
     return this.adminBlogModuleService.bulkDeletePosts(postIds);
   }
 
@@ -72,8 +77,8 @@ export class AdminBlogModuleController {
    * Publish multiple blog posts in bulk
    * Source: AdminBlogController.bulkPublish
    */
-  @Get()
-  async bulkPublishPosts(@Query('postIds') postIds?: number[]) {
+  @Post('bulk-publish')
+  async bulkPublishPosts(@Body('post_ids') postIds?: number[]) {
     return this.adminBlogModuleService.bulkPublishPosts(postIds);
   }
 }

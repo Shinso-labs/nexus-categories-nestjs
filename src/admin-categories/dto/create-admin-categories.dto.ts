@@ -14,7 +14,7 @@ export class CreateAdminCategoriesModuleDto {
   description?: string | null;
 
   @IsOptional()
-  @IsString()
+  @IsNumber()
   parentId?: number | null;
 
   @IsOptional()

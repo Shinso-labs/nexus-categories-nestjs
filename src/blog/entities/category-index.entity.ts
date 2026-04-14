@@ -14,7 +14,7 @@ export class CategoryIndex {
   totalCategories: number;
 
   /** Mapped from: BlogService category listing */
-  @Column()
+  @Column('simple-array')
   categorySlugs: string[];
 
   /** Mapped from: BlogService cache timestamp */

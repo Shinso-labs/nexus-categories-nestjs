@@ -6,65 +6,57 @@ export class CategoriesModuleController {
   constructor(private readonly categoriesModuleService: CategoriesModuleService) {}
 
   /**
-   * Get all public categories with optional parent filtering
+   * GET /api/v2/categories
+   * List categories, optionally filtered by type (listing, event, blog, resource, volunteering)
    * Source: CategoriesController.index
    */
   @Get()
+  async index(@Query('type') type?: string) {
+    if (type) {
+      return this.categoriesModuleService.getCategoriesByType(type, false);
+    } else {
+      return this.categoriesModuleService.getAllCategoriesService(false, 'type');
+    }
+  }
+
+  /**
+   * Get all public categories with optional parent filtering
+   * Source: CategoriesController.index
+   */
+  @Get('all')
   async getCategories(@Query('includeInactive') includeInactive?: boolean) {
     return this.categoriesModuleService.getCategories(includeInactive);
   }
 
   /**
    * Get a specific category by ID
-   * Source: 
    */
-  @Get()
-  async getCategoryById() {
-    return this.categoriesModuleService.getCategoryById();
+  @Get(':id')
+  async getCategoryById(@Param('id', ParseIntPipe) id: number) {
+    return this.categoriesModuleService.getCategoryById(id);
   }
 
   /**
    * Get a specific category by slug
-   * Source: 
    */
-  @Get()
-  async getCategoryBySlug(@Query('slug') slug?: string) {
+  @Get('by-slug/:slug')
+  async getCategoryBySlug(@Param('slug') slug: string) {
     return this.categoriesModuleService.getCategoryBySlug(slug);
   }
 
   /**
    * Get hierarchical category tree structure
-   * Source: 
    */
-  @Get()
+  @Get('tree')
   async getCategoryTree() {
     return this.categoriesModuleService.getCategoryTree();
   }
 
   /**
    * Format category data for API response
-   * Source: 
    */
-  @Get()
+  @Get('summary')
   async formatCategorySummary(@Query('includePostCount') includePostCount?: boolean) {
     return this.categoriesModuleService.formatCategorySummary(includePostCount);
-  }
-
-  /**
-   * Get categories filtered by type
-   * Source: CategoryService.getByType
-   */
-  @Get()
-  async getCategoriesByType(@Query('categoryType') categoryType?: string, @Query('includeInactive') includeInactive?: boolean) {
-    return this.categoriesModuleService.getCategoriesByType(categoryType, includeInactive);
-  }
-
-  /**
-   * Get all categories with optional hierarchy and sorting
-   * Source: CategoryService.getAll
-   */
-  @Get()
-  async getAllCategoriesService(@Query('includeHierarchy') includeHierarchy?: boolean, @Query('sortBy') sortBy?: string | null) {
-    return this.categoriesModuleService.getAllCategoriesService(includeHierarchy, sortBy);
   }
 }

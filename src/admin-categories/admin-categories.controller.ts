@@ -1,4 +1,4 @@
-import { Controller, Query, Param, Body, ParseIntPipe, Get, Post, Put, Delete } from '@nestjs/common';
+import { Controller, Query, Param, Body, ParseIntPipe, Get, Post, Put, Delete, BadRequestException, NotFoundException, ConflictException } from '@nestjs/common';
 import { AdminCategoriesModuleService } from './admin-categories.service';
 
 @Controller('admin-categories')
@@ -10,8 +10,8 @@ export class AdminCategoriesModuleController {
    * Source: AdminCategoriesController.index
    */
   @Get()
-  async getAdminCategories(@Query('page') page?: number | null, @Query('perPage') perPage?: number | null) {
-    return this.adminCategoriesModuleService.getAdminCategories(page, perPage);
+  async getAdminCategories(@Query('page') page?: number | null, @Query('perPage') perPage?: number | null, @Query('type') type?: string) {
+    return this.adminCategoriesModuleService.getAdminCategories(page, perPage, type);
   }
 
   /**
@@ -44,8 +44,9 @@ export class AdminCategoriesModuleController {
   /**
    * List all attributes with pagination for admin interface
    * Source: AdminCategoriesController.listAttributes
+   * Note: This should be on a separate route like /admin-categories/attributes
    */
-  @Get()
+  @Get('attributes')
   async getAdminAttributes(@Query('page') page?: number | null, @Query('perPage') perPage?: number | null) {
     return this.adminCategoriesModuleService.getAdminAttributes(page, perPage);
   }
@@ -53,8 +54,9 @@ export class AdminCategoriesModuleController {
   /**
    * Create a new attribute in admin interface
    * Source: AdminCategoriesController.storeAttribute
+   * Note: This should be on a separate route like /admin-categories/attributes
    */
-  @Post()
+  @Post('attributes')
   async createAdminAttribute(@Body() body: Record<string, any>) {
     return this.adminCategoriesModuleService.createAdminAttribute(body);
   }
@@ -62,8 +64,9 @@ export class AdminCategoriesModuleController {
   /**
    * Update existing attribute in admin interface
    * Source: AdminCategoriesController.updateAttribute
+   * Note: This should be on a separate route like /admin-categories/attributes/:id
    */
-  @Put(':id')
+  @Put('attributes/:id')
   async updateAdminAttribute(@Param('id', ParseIntPipe) id: number, @Body() body: Record<string, any>) {
     return this.adminCategoriesModuleService.updateAdminAttribute(id, body);
   }
@@ -71,8 +74,9 @@ export class AdminCategoriesModuleController {
   /**
    * Delete attribute from admin interface
    * Source: AdminCategoriesController.destroyAttribute
+   * Note: This should be on a separate route like /admin-categories/attributes/:id
    */
-  @Delete(':id')
+  @Delete('attributes/:id')
   async deleteAdminAttribute(@Param('id', ParseIntPipe) id: number) {
     return this.adminCategoriesModuleService.deleteAdminAttribute(id);
   }

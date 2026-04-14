@@ -1,13 +1,13 @@
 import { IsOptional, IsNumber, IsString, IsBoolean } from 'class-validator';
 
-export class CreateAdminBlogModuleDto {
-  @IsOptional()
-  @IsString()
-  title?: string;
-
+export class UpdateBlogModuleDto {
   @IsOptional()
   @IsString()
   slug?: string;
+
+  @IsOptional()
+  @IsString()
+  title?: string;
 
   @IsOptional()
   @IsString()
@@ -22,6 +22,14 @@ export class CreateAdminBlogModuleDto {
   featuredImage?: string | null;
 
   @IsOptional()
+  @IsNumber()
+  authorId?: number;
+
+  @IsOptional()
+  @IsString()
+  categoryIds?: number[];
+
+  @IsOptional()
   @IsString()
   status?: string;
 
@@ -31,11 +39,15 @@ export class CreateAdminBlogModuleDto {
 
   @IsOptional()
   @IsNumber()
-  authorId?: number;
+  updatedAt?: number;
 
   @IsOptional()
-  @IsString()
-  categoryId?: number | null;
+  @IsNumber()
+  viewCount?: number;
+
+  @IsOptional()
+  @IsBoolean()
+  isFeatured?: boolean;
 
   @IsOptional()
   @IsString()
@@ -44,16 +56,4 @@ export class CreateAdminBlogModuleDto {
   @IsOptional()
   @IsString()
   metaDescription?: string | null;
-
-  @IsOptional()
-  @IsBoolean()
-  isFeatured?: boolean;
-
-  @IsOptional()
-  @IsNumber()
-  viewCount?: number;
-
-  @IsOptional()
-  @IsNumber()
-  updatedAt?: number;
 }

@@ -1,4 +1,5 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, ManyToOne, JoinColumn } from 'typeorm';
+import { Author } from './author.entity';
 
 /**
  * BlogPost entity.
@@ -9,6 +10,10 @@ export class BlogPost {
   @PrimaryGeneratedColumn()
   id: number;
 
+  /** Mapped from: posts.tenant_id */
+  @Column()
+  tenantId: number;
+
   /** Mapped from: BlogPost.slug */
   @Column()
   slug: string;
@@ -18,7 +23,7 @@ export class BlogPost {
   title: string;
 
   /** Mapped from: BlogPost.content */
-  @Column()
+  @Column('text')
   content: string;
 
   /** Mapped from: BlogPost.excerpt */
@@ -34,7 +39,7 @@ export class BlogPost {
   authorId: number;
 
   /** Mapped from: BlogPost.categories */
-  @Column()
+  @Column('simple-array')
   categoryIds: number[];
 
   /** Mapped from: BlogPost.status */
@@ -46,11 +51,11 @@ export class BlogPost {
   publishedAt: number | null;
 
   /** Mapped from: BlogPost.view_count */
-  @Column()
+  @Column({ default: 0 })
   viewCount: number;
 
   /** Mapped from: BlogPost.is_featured */
-  @Column()
+  @Column({ default: false })
   isFeatured: boolean;
 
   /** Mapped from: BlogPost.meta_title */
@@ -60,6 +65,10 @@ export class BlogPost {
   /** Mapped from: BlogPost.meta_description */
   @Column({ nullable: true })
   metaDescription: string | null;
+
+  @ManyToOne(() => Author)
+  @JoinColumn({ name: 'authorId', referencedColumnName: 'userId' })
+  author: Author;
 
   @CreateDateColumn()
   createdAt: Date;
